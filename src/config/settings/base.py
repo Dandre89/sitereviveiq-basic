@@ -91,7 +91,7 @@ DATABASES = {
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         "CONN_MAX_AGE": 60,
         "OPTIONS": (
-            {"options": f"-c search_path={POSTGRES_SCHEMA},public"}
+            {"options": f"-c search_path={POSTGRES_SCHEMA}"}
             if POSTGRES_SCHEMA
             else {}
         ),
