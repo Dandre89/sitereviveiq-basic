@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+{% load sort_tags %}
+{% block title %}{{ website.name }} — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="flex justify-between items-start mb-8">
+    <div>
+        <h1 class="text-xl font-medium tracking-tight">{{ website.name }}</h1>
+        <p class="text-sm text-muted mt-1.5 leading-relaxed">{{ website.normalized_host }} · {{ website.get_website_type_display }} · {{ website.get_status_display }}</p>
+    </div>
+    <div id="tour-website-actions" class="flex gap-2">
+        <a href="{% url 'reports:list' website.pk %}" class="btn-ghost px-4 py-2.5 text-sm flex items-center gap-2">
+            <i data-lucide="file-bar-chart" style="width:16px;height:16px"></i> Reports
+        </a>
+        {% if request.can_edit %}
+        <a href="{% url 'websites:edit' website.pk %}" class="btn-ghost px-4 py-2.5 text-sm">Edit</a>
+        {% if website.status != "archived" %}
+        <form method="post" action="{% url 'websites:run_scan' website.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary px-4 py-2.5 text-sm">Run scan</button>
+        </form>
+        {% endif %}
+        {% if website.status == "archived" %}
+        <form method="post" action="{% url 'websites:unarchive' website.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="px-4 py-2.5 text-sm font-semibold border border-border rounded-[10px] hover:border-primary hover:text-primary">Unarchive</button>
+        </form>
+        {% else %}
+        <form method="post" action="{% url 'websites:archive' website.pk %}" onsubmit="return confirm('Archive this website?');">
+            {% csrf_token %}
+            <button type="submit" class="px-4 py-2.5 text-sm font-semibold text-danger border border-danger/20 rounded-[10px]">Archive</button>
+        </form>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<div id="tour-website-scores" class="sriq-metric-grid grid grid-cols-3 gap-5 mb-10">
+    <div class="card card-accent flex items-center gap-4" style="padding: 24px 24px 24px 48px; border-left-color: var(--color-primary);">
+        {% if website.last_scan.overall_score is not None %}
+        {% include "_score_ring.html" with score=website.last_scan.overall_score label="Overall score" %}
+        {% else %}
+        <div class="icon-chip" style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);">
+            <i data-lucide="gauge" style="width:20px;height:20px" class="text-primary"></i>
+        </div>
+        <div>
+            <span class="eyebrow block mb-1.5">Overall score</span>
+            <span class="text-base font-medium text-muted">Not scored yet</span>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card card-accent flex items-center gap-4" style="padding: 24px 24px 24px 48px; border-left-color: var(--color-secondary);">
+        <div class="icon-chip" style="background-color: color-mix(in srgb, var(--color-secondary) 10%, transparent);">
+            <i data-lucide="scan-line" style="width:20px;height:20px" class="text-secondary"></i>
+        </div>
+        <div>
+            <span class="eyebrow block mb-1.5">Last scan</span>
+            <span class="text-base font-medium leading-snug">
+                {% if website.last_scan %}{{ website.last_scan.get_status_display }} — {{ website.last_scan.created_at|date:"M j, g:i A" }}{% else %}Never{% endif %}
+            </span>
+        </div>
+    </div>
+    <div class="card card-accent flex items-center gap-4" style="padding: 24px 24px 24px 48px; border-left-color: var(--color-good);">
+        <div class="icon-chip" style="background-color: color-mix(in srgb, var(--color-good) 10%, transparent);">
+            <i data-lucide="file-text" style="width:20px;height:20px" class="text-good"></i>
+        </div>
+        <div>
+            <span class="eyebrow block mb-1.5">Pages found</span>
+            <span class="text-2xl font-medium leading-tight">{{ website.last_scan.pages_completed|default:"0" }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="flex items-center justify-between mb-3">
+    <h2 class="eyebrow">Score breakdown</h2>
+</div>
+<div class="grid grid-cols-2 gap-5 mb-10">
+    <div class="card p-5">
+        <span class="text-xs font-semibold text-muted block mb-3">Category scores</span>
+        {% if category_chart %}
+        <div style="position:relative; height:260px;"><canvas id="chart-category-scores"></canvas></div>
+        {% else %}
+        <div class="text-center text-muted text-xs py-16">Run a scan to see category scores here.</div>
+        {% endif %}
+    </div>
+    <div class="card p-5">
+        <span class="text-xs font-semibold text-muted block mb-3">Overall score trend</span>
+        {% if score_trend|length > 1 %}
+        <div style="position:relative; height:260px;"><canvas id="chart-score-trend"></canvas></div>
+        {% else %}
+        <div class="text-center text-muted text-xs py-16">Score trend appears once this site has 2+ completed scans.</div>
+        {% endif %}
+    </div>
+</div>
+<div class="grid grid-cols-2 gap-5 mb-10">
+    <div class="card p-5">
+        <span class="text-xs font-semibold text-muted block mb-3">Open issues by severity</span>
+        {% if issues_by_severity %}
+        <div style="position:relative; height:220px;"><canvas id="chart-issues-severity"></canvas></div>
+        {% else %}
+        <div class="text-center text-muted text-xs py-16">No open issues to chart.</div>
+        {% endif %}
+    </div>
+    <div class="card p-5">
+        <span class="text-xs font-semibold text-muted block mb-3">Open issues by category</span>
+        {% if issues_by_category %}
+        <div style="position:relative; height:220px;"><canvas id="chart-issues-category"></canvas></div>
+        {% else %}
+        <div class="text-center text-muted text-xs py-16">No open issues to chart.</div>
+        {% endif %}
+    </div>
+</div>
+
+{{ category_chart|json_script:"data-category-chart" }}
+{{ score_trend|json_script:"data-score-trend" }}
+{{ issues_by_severity|json_script:"data-issues-severity" }}
+{{ issues_by_category|json_script:"data-issues-category" }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (!window.Chart) return;
+
+    var categoryData = JSON.parse(document.getElementById('data-category-chart').textContent);
+    var canvas = document.getElementById('chart-category-scores');
+    if (canvas && categoryData.length) {
+        var palette = SRIQCharts.palette();
+        new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: categoryData.map(function (d) { return d.label; }),
+                datasets: [{
+                    label: 'Score',
+                    data: categoryData.map(function (d) { return d.score; }),
+                    backgroundColor: categoryData.map(function (_, i) { return palette[i % palette.length]; }),
+                    borderRadius: 6,
+                    maxBarThickness: 42,
+                }],
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { min: 0, max: 100, grid: { color: SRIQCharts.gridColor() } },
+                    y: { grid: { display: false } },
+                },
+                plugins: { legend: { display: false } },
+            },
+        });
+    }
+
+    var trendData = JSON.parse(document.getElementById('data-score-trend').textContent);
+    var trendCanvas = document.getElementById('chart-score-trend');
+    if (trendCanvas && trendData.length > 1) {
+        new Chart(trendCanvas, {
+            type: 'line',
+            data: {
+                labels: trendData.map(function (d) { return d.date; }),
+                datasets: [{
+                    label: 'Overall score',
+                    data: trendData.map(function (d) { return d.score; }),
+                    borderColor: SRIQCharts.cssVar('--color-primary'),
+                    backgroundColor: 'color-mix(in srgb, ' + SRIQCharts.cssVar('--color-primary') + ' 15%, transparent)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { min: 0, max: 100, grid: { color: SRIQCharts.gridColor() } },
+                    x: { grid: { display: false } },
+                },
+                plugins: { legend: { display: false } },
+            },
+        });
+    }
+
+    var severityData = JSON.parse(document.getElementById('data-issues-severity').textContent);
+    var severityCanvas = document.getElementById('chart-issues-severity');
+    if (severityCanvas && severityData.length) {
+        new Chart(severityCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: severityData.map(function (d) { return d.label; }),
+                datasets: [{
+                    data: severityData.map(function (d) { return d.count; }),
+                    backgroundColor: severityData.map(function (d) { return SRIQCharts.severityColor(d.label); }),
+                    borderWidth: 0,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: { legend: { position: 'right' } },
+            },
+        });
+    }
+
+    var categoryIssueData = JSON.parse(document.getElementById('data-issues-category').textContent);
+    var categoryIssueCanvas = document.getElementById('chart-issues-category');
+    if (categoryIssueCanvas && categoryIssueData.length) {
+        var palette2 = SRIQCharts.palette();
+        new Chart(categoryIssueCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: categoryIssueData.map(function (d) { return d.label; }),
+                datasets: [{
+                    data: categoryIssueData.map(function (d) { return d.count; }),
+                    backgroundColor: categoryIssueData.map(function (_, i) { return palette2[i % palette2.length]; }),
+                    borderWidth: 0,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: { legend: { position: 'right' } },
+            },
+        });
+    }
+});
+</script>
+
+<div class="flex items-center justify-between mb-3">
+    <h2 class="eyebrow">Performance</h2>
+</div>
+
+<div class="flex items-center gap-2 mb-3">
+    <span class="text-xs font-semibold text-muted">Field metrics</span>
+    <span class="pill pill-neutral">Preview</span>
+</div>
+<div class="card card-accent p-5 mb-4" style="border-left-color: var(--color-primary);">
+    <p class="text-xs text-muted leading-relaxed">Field-data speed metrics aren't measured by the scanner yet — these are sample values showing what the breakdown will look like once real Core Web Vitals collection is wired up.</p>
+</div>
+<div id="tour-website-cwv" class="cwv-grid mb-8">
+    <div class="cwv-tile">
+        <div class="cwv-tile-label">Largest Contentful Paint</div>
+        <div class="cwv-tile-value">2.8<span class="cwv-tile-unit">s</span></div>
+        <span class="pill pill-warn mt-2" style="display:inline-flex;">Needs improvement</span>
+        <div class="cwv-tile-desc">Time until the largest visible element renders. Good is under 2.5s.</div>
+        <div class="cwv-tile-bar-track"><div class="cwv-tile-bar-fill cwv-warn" style="width: 62%;"></div></div>
+    </div>
+    <div class="cwv-tile">
+        <div class="cwv-tile-label">Interaction to Next Paint</div>
+        <div class="cwv-tile-value">150<span class="cwv-tile-unit">ms</span></div>
+        <span class="pill pill-good mt-2" style="display:inline-flex;">Good</span>
+        <div class="cwv-tile-desc">Responsiveness to clicks and taps. Good is under 200ms.</div>
+        <div class="cwv-tile-bar-track"><div class="cwv-tile-bar-fill cwv-good" style="width: 30%;"></div></div>
+    </div>
+    <div class="cwv-tile">
+        <div class="cwv-tile-label">Cumulative Layout Shift</div>
+        <div class="cwv-tile-value">0.31</div>
+        <span class="pill pill-danger mt-2" style="display:inline-flex;">Poor</span>
+        <div class="cwv-tile-desc">Visual stability while the page loads. Good is under 0.1.</div>
+        <div class="cwv-tile-bar-track"><div class="cwv-tile-bar-fill cwv-poor" style="width: 88%;"></div></div>
+    </div>
+</div>
+
+<div class="flex items-center gap-2 mb-3">
+    <span class="text-xs font-semibold text-muted">From your last scan</span>
+</div>
+{% if avg_response_ms is not None or avg_page_weight_mb is not None %}
+<div class="cwv-grid cwv-grid-2 mb-10">
+    {% if avg_response_ms is not None %}
+    <div class="cwv-tile">
+        <div class="cwv-tile-label">Avg. server response time</div>
+        <div class="cwv-tile-value">{{ avg_response_ms|floatformat:0 }}<span class="cwv-tile-unit">ms</span></div>
+        {% if avg_response_ms < 800 %}
+        <span class="pill pill-good mt-2" style="display:inline-flex;">Good</span>
+        {% elif avg_response_ms < 1800 %}
+        <span class="pill pill-warn mt-2" style="display:inline-flex;">Needs improvement</span>
+        {% else %}
+        <span class="pill pill-danger mt-2" style="display:inline-flex;">Poor</span>
+        {% endif %}
+        <div class="cwv-tile-desc">Time to first byte, averaged across {{ website.last_scan.pages_completed }} crawled pages. Good is under 800ms.</div>
+        <div class="cwv-tile-bar-track"><div class="cwv-tile-bar-fill {% if avg_response_ms < 800 %}cwv-good{% elif avg_response_ms < 1800 %}cwv-warn{% else %}cwv-poor{% endif %}" style="width: {% widthratio avg_response_ms 1800 100 %}%;"></div></div>
+    </div>
+    {% endif %}
+    {% if avg_page_weight_mb is not None %}
+    <div class="cwv-tile">
+        <div class="cwv-tile-label">Avg. page weight</div>
+        <div class="cwv-tile-value">{{ avg_page_weight_mb|floatformat:1 }}<span class="cwv-tile-unit">MB</span></div>
+        {% if avg_page_weight_mb < 1.5 %}
+        <span class="pill pill-good mt-2" style="display:inline-flex;">Good</span>
+        {% elif avg_page_weight_mb < 3 %}
+        <span class="pill pill-warn mt-2" style="display:inline-flex;">Needs improvement</span>
+        {% else %}
+        <span class="pill pill-danger mt-2" style="display:inline-flex;">Poor</span>
+        {% endif %}
+        <div class="cwv-tile-desc">Response size, averaged across {{ website.last_scan.pages_completed }} crawled pages. Good is under 1.5MB.</div>
+        <div class="cwv-tile-bar-track"><div class="cwv-tile-bar-fill {% if avg_page_weight_mb < 1.5 %}cwv-good{% elif avg_page_weight_mb < 3 %}cwv-warn{% else %}cwv-poor{% endif %}" style="width: {% widthratio avg_page_weight_mb 3 100 %}%;"></div></div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="card p-6 text-center text-muted text-xs mb-10">Run a scan to see real response time and page weight data here.</div>
+{% endif %}
+
+<div class="flex items-center justify-between mb-3">
+    <h2 class="eyebrow">Open issues{% if issues %} ({{ issues|length }}){% endif %}</h2>
+</div>
+<form method="get" class="flex items-center gap-3 mb-3 flex-wrap">
+    <input type="hidden" name="psort" value="{{ request.GET.psort }}">
+    <input type="hidden" name="pdir" value="{{ request.GET.pdir }}">
+    <input type="hidden" name="pstatus" value="{{ selected_pstatus }}">
+    <input type="hidden" name="ssort" value="{{ request.GET.ssort }}">
+    <input type="hidden" name="sdir" value="{{ request.GET.sdir }}">
+    <input type="hidden" name="sstatus" value="{{ selected_sstatus }}">
+    <select name="icategory" onchange="this.form.submit()" style="width:auto; max-width:180px;">
+        <option value="">All categories</option>
+        {% for value, label in issue_categories %}
+        <option value="{{ value }}" {% if selected_icategory == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="iseverity" onchange="this.form.submit()" style="width:auto; max-width:160px;">
+        <option value="">All severities</option>
+        {% for value, label in issue_severities %}
+        <option value="{{ value }}" {% if selected_iseverity == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    {% if selected_icategory or selected_iseverity %}
+    <a href="{% url 'websites:detail' website.pk %}" class="text-xs text-muted hover:text-primary font-semibold">Clear</a>
+    {% endif %}
+</form>
+<div id="tour-website-issues" class="card overflow-hidden mb-10">
+    <table class="data w-full text-left">
+        <thead>
+            <tr>
+                <th class="px-4 py-2.5">{% sort_header "title" "Issue" "isort" "idir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "priority" "Priority" "isort" "idir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "severity" "Severity" "isort" "idir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "category" "Category" "isort" "idir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "where" "Where" "isort" "idir" %}</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-primary/5">
+            {% for issue in issues %}
+            <tr>
+                <td class="px-4 py-2.5 font-medium">
+                    <a href="{% url 'findings:detail' issue.pk %}" class="hover:text-primary">{{ issue.title }}</a>
+                </td>
+                <td class="px-4 py-2.5">
+                    {% if issue.priority_class == "immediate_risk" %}
+                    <span class="pill pill-danger"><span class="w-1.5 h-1.5 rounded-full bg-danger"></span>Immediate risk</span>
+                    {% elif issue.priority_class == "quick_win" %}
+                    <span class="pill pill-good"><span class="w-1.5 h-1.5 rounded-full bg-good"></span>Quick win</span>
+                    {% elif issue.priority_class == "growth_improvement" %}
+                    <span class="pill pill-progress"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>Growth</span>
+                    {% elif issue.priority_class == "strategic_renovation" %}
+                    <span class="pill pill-warn"><span class="w-1.5 h-1.5 rounded-full bg-warn"></span>Strategic</span>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5 text-muted capitalize">{{ issue.current_severity }}</td>
+                <td class="px-4 py-2.5 text-muted">{{ issue.get_category_display }}</td>
+                <td class="px-4 py-2.5 text-muted">{{ issue.affected_scope|truncatechars:50 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-10 text-center text-muted">
+                {% if selected_icategory or selected_iseverity %}No open issues match these filters.{% else %}No open issues — either nothing's been scanned yet, or the site's clean.{% endif %}
+            </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="flex items-center justify-between mb-3">
+    <h2 class="eyebrow">Pages (most recent scan)</h2>
+</div>
+<form method="get" class="flex items-center gap-3 mb-3 flex-wrap">
+    <input type="hidden" name="isort" value="{{ request.GET.isort }}">
+    <input type="hidden" name="idir" value="{{ request.GET.idir }}">
+    <input type="hidden" name="icategory" value="{{ selected_icategory }}">
+    <input type="hidden" name="iseverity" value="{{ selected_iseverity }}">
+    <input type="hidden" name="ssort" value="{{ request.GET.ssort }}">
+    <input type="hidden" name="sdir" value="{{ request.GET.sdir }}">
+    <input type="hidden" name="sstatus" value="{{ selected_sstatus }}">
+    <select name="pstatus" onchange="this.form.submit()" style="width:auto; max-width:180px;">
+        <option value="">All statuses</option>
+        {% for value, label in page_statuses %}
+        <option value="{{ value }}" {% if selected_pstatus == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    {% if selected_pstatus %}
+    <a href="{% url 'websites:detail' website.pk %}" class="text-xs text-muted hover:text-primary font-semibold">Clear</a>
+    {% endif %}
+</form>
+<div id="tour-website-pages" class="card overflow-hidden mb-10">
+    <table class="data w-full text-left">
+        <thead>
+            <tr>
+                <th class="px-4 py-2.5">{% sort_header "url" "URL" "psort" "pdir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "status" "Status" "psort" "pdir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "title" "Title" "psort" "pdir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "words" "Words" "psort" "pdir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "depth" "Depth" "psort" "pdir" %}</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-primary/5">
+            {% for page in pages %}
+            <tr>
+                <td class="px-4 py-2.5 font-medium">{{ page.normalized_url }}</td>
+                <td class="px-4 py-2.5">
+                    {% if page.fetch_status == "completed" %}
+                    <span class="pill pill-good"><span class="w-1.5 h-1.5 rounded-full bg-good"></span>{{ page.http_status_code }}</span>
+                    {% else %}
+                    <span class="pill pill-danger"><span class="w-1.5 h-1.5 rounded-full bg-danger"></span>{{ page.fetch_status }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5 text-muted">{{ page.page_title|truncatechars:60 }}</td>
+                <td class="px-4 py-2.5 text-muted">{{ page.word_count }}</td>
+                <td class="px-4 py-2.5 text-muted">{{ page.crawl_depth }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-10 text-center text-muted">{% if selected_pstatus %}No pages match this filter.{% else %}No pages yet.{% endif %}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="flex items-center justify-between mb-3">
+    <h2 class="eyebrow">Scan history</h2>
+</div>
+<form method="get" class="flex items-center gap-3 mb-3 flex-wrap">
+    <input type="hidden" name="isort" value="{{ request.GET.isort }}">
+    <input type="hidden" name="idir" value="{{ request.GET.idir }}">
+    <input type="hidden" name="icategory" value="{{ selected_icategory }}">
+    <input type="hidden" name="iseverity" value="{{ selected_iseverity }}">
+    <input type="hidden" name="psort" value="{{ request.GET.psort }}">
+    <input type="hidden" name="pdir" value="{{ request.GET.pdir }}">
+    <input type="hidden" name="pstatus" value="{{ selected_pstatus }}">
+    <select name="sstatus" onchange="this.form.submit()" style="width:auto; max-width:180px;">
+        <option value="">All statuses</option>
+        {% for value, label in scan_statuses %}
+        <option value="{{ value }}" {% if selected_sstatus == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    {% if selected_sstatus %}
+    <a href="{% url 'websites:detail' website.pk %}" class="text-xs text-muted hover:text-primary font-semibold">Clear</a>
+    {% endif %}
+</form>
+<div id="tour-website-scans" class="card overflow-hidden">
+    <table class="data w-full text-left">
+        <thead>
+            <tr>
+                <th class="px-4 py-2.5">{% sort_header "date" "Date" "ssort" "sdir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "status" "Status" "ssort" "sdir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "completed" "Completed" "ssort" "sdir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "failed" "Failed" "ssort" "sdir" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "requested_by" "Requested by" "ssort" "sdir" %}</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-primary/5">
+            {% for scan in scans %}
+            <tr>
+                <td class="px-4 py-2.5">
+                    <a href="{% url 'scans:progress' scan.pk %}" class="font-semibold hover:text-primary">{{ scan.created_at|date:"M j, g:i A" }}</a>
+                </td>
+                <td class="px-4 py-2.5 text-muted">{{ scan.get_status_display }}{% if scan.failure_message %} — {{ scan.failure_message|truncatechars:40 }}{% endif %}</td>
+                <td class="px-4 py-2.5 text-muted">{{ scan.pages_completed }}</td>
+                <td class="px-4 py-2.5 text-muted">{{ scan.pages_failed }}</td>
+                <td class="px-4 py-2.5 text-muted">{{ scan.requested_by.email|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-10 text-center text-muted">{% if selected_sstatus %}No scans match this filter.{% else %}No scans yet.{% endif %}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ report.title }} — {{ report.website.name }}{% endblock %}
+{% block content %}
+<div class="client-report-shell">
+
+    <div class="client-report-header mb-8">
+        <div class="flex items-center gap-3">
+            <div class="client-report-brandmark">
+                {% if report.website.workspace.logo %}
+                <img src="{{ report.website.workspace.logo.url }}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="">
+                {% else %}
+                <i data-lucide="sparkles" style="width:18px;height:18px;color:#fff"></i>
+                {% endif %}
+            </div>
+            <div>
+                <div class="text-sm font-semibold">{{ report.website.workspace.name }}</div>
+                <div class="text-xs text-muted">Prepared for {{ report.website.name }}</div>
+            </div>
+        </div>
+        <a href="{% url 'reports:public_report_pdf' share_token %}" class="btn-primary px-4 py-2.5 text-sm flex items-center gap-2">
+            <i data-lucide="download" style="width:14px;height:14px"></i> Download PDF
+        </a>
+    </div>
+
+    <h1 class="text-xl font-medium tracking-tight mb-1.5">{{ report.title }}</h1>
+    <p class="text-sm text-muted mb-8">{{ report.generated_at|date:"M j, Y" }}</p>
+
+    {% include "reports/_report_body.html" %}
+
+    {% if report.website.workspace.show_powered_by %}
+    <p class="client-report-footer">Powered by SiteRevive IQ</p>
+    {% endif %}
+</div>
+{% endblock %}

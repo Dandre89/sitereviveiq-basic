@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ report.title }} — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="flex items-start justify-between gap-4 mb-8">
+    <div>
+        <a href="{% url 'reports:list' report.website.pk %}" class="text-sm text-muted hover:text-primary flex items-center gap-1 mb-2">
+            <i data-lucide="arrow-left" style="width:14px;height:14px"></i> Reports
+        </a>
+        <h1 class="text-xl font-medium tracking-tight">{{ report.title }}</h1>
+        <p class="text-sm text-muted mt-1.5">Generated {{ report.generated_at|date:"M j, Y g:i A" }}{% if report.generated_by %} by {{ report.generated_by.email }}{% endif %}</p>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+        <a href="{% url 'reports:export_pdf' report.pk %}" class="btn-ghost px-4 py-2.5 text-sm flex items-center gap-2">
+            <i data-lucide="download" style="width:15px;height:15px"></i> Download PDF
+        </a>
+        {% if request.can_edit %}
+        <a href="{% url 'reports:client_view' report.pk %}" class="btn-primary px-4 py-2.5 text-sm flex items-center gap-2">
+            <i data-lucide="external-link" style="width:15px;height:15px"></i> Share with client
+        </a>
+        <form method="post" action="{% url 'reports:delete' report.pk %}" onsubmit="return confirm('Delete this report? This can\'t be undone.');">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'reports:list' report.website.pk %}">
+            <button type="submit" class="btn-ghost px-4 py-2.5 text-sm flex items-center gap-2 text-danger" aria-label="Delete report">
+                <i data-lucide="trash-2" style="width:15px;height:15px"></i>
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{% include "reports/_report_body.html" %}
+{% endblock %}

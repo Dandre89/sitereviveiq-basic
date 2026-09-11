@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}Settings — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-xl font-medium tracking-tight">Settings</h1>
+    <p class="text-sm text-muted mt-1">Appearance, account, workspace, and notification settings below all save for real.</p>
+</div>
+
+<div id="tour-settings-appearance" class="card p-6 max-w-3xl mb-6">
+    <h2 class="eyebrow mb-1">Appearance</h2>
+    <p class="text-xs text-muted mb-5">Pick a color theme. Changes apply instantly and are remembered on this device.</p>
+
+    <p class="text-xs font-medium text-muted mb-3">Light</p>
+    <div class="theme-swatch-grid mb-6">
+        <button type="button" class="theme-swatch" data-theme-value="obsidianlight" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#F7F7F8;">
+                <span class="theme-swatch-sidebar" style="background:#000000;"></span>
+                <span class="theme-swatch-dot" style="background:#3B82F6;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Obsidian Light</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="lagoon" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#EFFAFE;">
+                <span class="theme-swatch-sidebar" style="background:#072C40;"></span>
+                <span class="theme-swatch-dot" style="background:#0090FF;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Lagoon</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="navy" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#F4F6F9;">
+                <span class="theme-swatch-sidebar" style="background:#12213A;"></span>
+                <span class="theme-swatch-dot" style="background:#185FA5;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Navy</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="violet" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#F5F4FB;">
+                <span class="theme-swatch-sidebar" style="background:#241B3A;"></span>
+                <span class="theme-swatch-dot" style="background:#6D5FCF;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Violet</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="forest" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#F2F7F4;">
+                <span class="theme-swatch-sidebar" style="background:#14261F;"></span>
+                <span class="theme-swatch-dot" style="background:#1F7A5C;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Forest</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="coral" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#FBF4F1;">
+                <span class="theme-swatch-sidebar" style="background:#2E1B14;"></span>
+                <span class="theme-swatch-dot" style="background:#D85A30;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Coral</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="rose" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#FBF3F5;">
+                <span class="theme-swatch-sidebar" style="background:#2A1620;"></span>
+                <span class="theme-swatch-dot" style="background:#B03A5B;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Rose</span>
+        </button>
+    </div>
+
+    <p class="text-xs font-medium text-muted mb-3">Dark</p>
+    <div class="theme-swatch-grid">
+        <button type="button" class="theme-swatch" data-theme-value="obsidian" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#0A0A0B;">
+                <span class="theme-swatch-sidebar" style="background:#000000;"></span>
+                <span class="theme-swatch-dot" style="background:#3B82F6;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Obsidian</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="aurora" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#071019;">
+                <span class="theme-swatch-sidebar" style="background:#030B10;"></span>
+                <span class="theme-swatch-dot" style="background:#22D3EE;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Aurora</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="midnight" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#0B1420;">
+                <span class="theme-swatch-sidebar" style="background:#060B12;"></span>
+                <span class="theme-swatch-dot" style="background:#4F9CE8;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Midnight</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="charcoal" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#17181C;">
+                <span class="theme-swatch-sidebar" style="background:#0E0F12;"></span>
+                <span class="theme-swatch-dot" style="background:#9B8FEA;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Charcoal</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="deepforest" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#0E1712;">
+                <span class="theme-swatch-sidebar" style="background:#081009;"></span>
+                <span class="theme-swatch-dot" style="background:#4FBF8F;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Deep forest</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="espresso" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#1B1512;">
+                <span class="theme-swatch-sidebar" style="background:#120D0A;"></span>
+                <span class="theme-swatch-dot" style="background:#E0894F;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Espresso</span>
+        </button>
+        <button type="button" class="theme-swatch" data-theme-value="plumnight" onclick="sriqSelectTheme(this)">
+            <span class="theme-swatch-preview" style="background:#180F18;">
+                <span class="theme-swatch-sidebar" style="background:#0D070E;"></span>
+                <span class="theme-swatch-dot" style="background:#D97AAE;"></span>
+                <i data-lucide="check" class="theme-swatch-check"></i>
+            </span>
+            <span class="theme-swatch-label">Plum night</span>
+        </button>
+    </div>
+</div>
+
+<div id="tour-settings-account" class="card p-6 max-w-3xl mb-6">
+    <h2 class="eyebrow mb-1">Account</h2>
+    <p class="text-xs text-muted mb-5">Your login and profile details.</p>
+
+    <form method="post" action="{% url 'accounts:update_profile' %}">
+        {% csrf_token %}
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="text-xs font-medium text-muted mb-1.5 block" for="{{ profile_form.first_name.id_for_label }}">First name</label>
+                {{ profile_form.first_name }}
+            </div>
+            <div>
+                <label class="text-xs font-medium text-muted mb-1.5 block" for="{{ profile_form.last_name.id_for_label }}">Last name</label>
+                {{ profile_form.last_name }}
+            </div>
+        </div>
+        <div class="mb-6">
+            <label class="text-xs font-medium text-muted mb-1.5 block" for="{{ profile_form.email.id_for_label }}">Email</label>
+            {{ profile_form.email }}
+            {% if profile_form.email.errors %}<p class="text-danger text-xs mt-1.5 font-medium">{{ profile_form.email.errors.0 }}</p>{% endif %}
+        </div>
+        <button type="submit" class="btn-primary px-4 py-2.5 text-sm">Save profile</button>
+    </form>
+
+    <div class="mt-6" style="border-top: 1px solid var(--color-border-soft); padding-top: 20px;">
+        <p class="text-xs font-medium text-muted mb-3">Change password</p>
+        <form method="post" action="{% url 'accounts:change_password' %}">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 gap-3 max-w-sm mb-4">
+                <input type="password" name="old_password" placeholder="Current password" required>
+                <input type="password" name="new_password1" placeholder="New password" required>
+                <input type="password" name="new_password2" placeholder="Confirm new password" required>
+            </div>
+            <button type="submit" class="btn-ghost px-4 py-2.5 text-sm">Change password</button>
+        </form>
+    </div>
+</div>
+
+<div id="tour-settings-workspace" class="card p-6 max-w-3xl mb-6">
+    <h2 class="eyebrow mb-1">Workspace</h2>
+    <p class="text-xs text-muted mb-5">Shared settings for everyone in this workspace.{% if not is_workspace_owner %} Only workspace owners can change these.{% endif %}</p>
+
+    <form method="post" action="{% url 'workspaces:update_general' %}">
+        {% csrf_token %}
+        <div class="mb-5" style="max-width: 320px;">
+            <label class="text-xs font-medium text-muted mb-1.5 block" for="workspace_name">Workspace name</label>
+            <input type="text" name="name" id="workspace_name" value="{{ request.workspace.name }}" {% if not is_workspace_owner %}disabled{% endif %}>
+        </div>
+        {% if is_workspace_owner %}<button type="submit" class="btn-ghost px-4 py-2.5 text-sm">Save workspace</button>{% endif %}
+    </form>
+</div>
+
+<div id="tour-settings-billing" class="card p-6 max-w-3xl mb-6">
+    <h2 class="eyebrow mb-1">Billing</h2>
+    <p class="text-xs text-muted mb-5">Subscription status for {{ request.workspace.name }}.{% if not is_workspace_owner %} Only workspace owners can manage billing.{% endif %}</p>
+
+    {% if subscription %}
+    <div class="settings-row">
+        <div>
+            <p class="settings-row-label">
+                Status
+                <span class="pill {% if subscription.status == 'active' or subscription.status == 'trialing' %}pill-good{% elif subscription.status == 'past_due' or subscription.status == 'unpaid' %}pill-warn{% elif subscription.status == 'canceled' or subscription.status == 'incomplete_expired' %}pill-danger{% else %}pill-neutral{% endif %}" style="margin-left:6px;">{{ subscription.get_status_display }}</span>
+            </p>
+            {% if subscription.current_period_end %}
+            <p class="settings-row-desc">
+                {% if subscription.cancel_at_period_end %}Access ends{% else %}Renews{% endif %} {{ subscription.current_period_end|date:"M j, Y" }}
+            </p>
+            {% elif not subscription.is_linked %}
+            <p class="settings-row-desc">Not yet linked to a Stripe subscription — contact SiteRevive IQ to get billing set up.</p>
+            {% endif %}
+        </div>
+        {% if is_workspace_owner and subscription.is_linked %}
+        <form method="post" action="{% url 'billing:portal' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-ghost px-4 py-2.5 text-sm">Manage billing</button>
+        </form>
+        {% endif %}
+    </div>
+    {% else %}
+    <p class="text-sm text-muted">Billing isn't set up for this workspace yet.</p>
+    {% endif %}
+</div>
+
+<div id="tour-settings-notifications" class="card p-6 max-w-3xl">
+    <h2 class="eyebrow mb-1">Notifications</h2>
+    <p class="text-xs text-muted mb-4">Choose what triggers a notification — and a real email — in this workspace.{% if not is_workspace_owner %} Only workspace owners can change these.{% endif %}</p>
+
+    <form method="post" action="{% url 'workspaces:update_notifications' %}">
+        {% csrf_token %}
+        <div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">Critical findings</p>
+                    <p class="settings-row-desc">Security issues and other urgent problems found during a scan.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_critical_findings" {% if request.workspace.notify_critical_findings %}checked{% endif %} {% if not is_workspace_owner %}disabled{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">Score drops</p>
+                    <p class="settings-row-desc">Overall score falls by more than the threshold below.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_score_drops" {% if request.workspace.notify_score_drops %}checked{% endif %} {% if not is_workspace_owner %}disabled{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">Scan completed</p>
+                    <p class="settings-row-desc">A scan finishes, whether it succeeds or fails.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_scan_completed" {% if request.workspace.notify_scan_completed %}checked{% endif %} {% if not is_workspace_owner %}disabled{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">New opportunities</p>
+                    <p class="settings-row-desc">A rescan surfaces a new growth or quick-win opportunity.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_new_opportunities" {% if request.workspace.notify_new_opportunities %}checked{% endif %} {% if not is_workspace_owner %}disabled{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">Returning issues</p>
+                    <p class="settings-row-desc">Something previously resolved shows up again on a rescan.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_returning_issues" {% if request.workspace.notify_returning_issues %}checked{% endif %} {% if not is_workspace_owner %}disabled{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="mt-2 mb-5" style="border-top: 1px solid var(--color-border-soft); padding-top: 20px;">
+            <label class="text-xs font-medium text-muted mb-1.5 block" for="score_drop_threshold">Score-drop threshold</label>
+            <p class="text-xs text-muted mb-2">Notify when the overall score drops by at least this many points.</p>
+            <input type="number" name="score_drop_threshold" id="score_drop_threshold" value="{{ request.workspace.score_drop_threshold }}" min="1" max="100" style="max-width: 100px;" {% if not is_workspace_owner %}disabled{% endif %}>
+        </div>
+        {% if is_workspace_owner %}<button type="submit" class="btn-ghost px-4 py-2.5 text-sm">Save notifications</button>{% endif %}
+    </form>
+</div>
+
+<script>
+    function sriqSelectTheme(btn) {
+        var theme = btn.getAttribute('data-theme-value');
+        window.SRIQ.setTheme(theme);
+        document.querySelectorAll('.theme-swatch').forEach(function (el) {
+            el.classList.toggle('selected', el === btn);
+        });
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        var current = window.SRIQ.getTheme();
+        var match = document.querySelector('.theme-swatch[data-theme-value="' + current + '"]');
+        if (match) match.classList.add('selected');
+    });
+</script>
+{% endblock %}

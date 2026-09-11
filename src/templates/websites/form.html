@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == "add" %}Add website{% else %}Edit website{% endif %} — SiteRevive IQ{% endblock %}
+{% block content %}
+<h1 class="text-xl font-medium tracking-tight mb-6">{% if mode == "add" %}Add website{% else %}Edit website{% endif %}</h1>
+
+<form method="post" class="card max-w-lg space-y-5 p-6">
+    {% csrf_token %}
+
+    <div>
+        <label class="eyebrow block mb-1.5" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+        {{ form.name }}
+        {% if form.name.errors %}
+        <p class="text-danger text-xs mt-1.5 font-medium">{{ form.name.errors.0 }}</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <label class="eyebrow block mb-1.5" for="{{ form.submitted_url.id_for_label }}">{{ form.submitted_url.label }}</label>
+        <div class="input-icon-wrap">
+            <i data-lucide="globe" class="input-icon"></i>
+            {{ form.submitted_url }}
+        </div>
+        {% if form.submitted_url.errors %}
+        <p class="text-danger text-xs mt-1.5 font-medium">{{ form.submitted_url.errors.0 }}</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <label class="eyebrow block mb-1.5">{{ form.website_type.label }}</label>
+        <div class="type-picker-grid">
+            {% for radio in form.website_type %}
+            <label class="type-picker-card" for="{{ radio.id_for_label }}">
+                {{ radio.tag }}
+                {% if radio.data.value == "prospect" %}
+                <i data-lucide="target" class="type-picker-icon"></i>
+                {% elif radio.data.value == "client" %}
+                <i data-lucide="handshake" class="type-picker-icon"></i>
+                {% elif radio.data.value == "internal" %}
+                <i data-lucide="building-2" class="type-picker-icon"></i>
+                {% elif radio.data.value == "competitor" %}
+                <i data-lucide="swords" class="type-picker-icon"></i>
+                {% endif %}
+                <span class="type-picker-label">{{ radio.choice_label }}</span>
+            </label>
+            {% endfor %}
+        </div>
+        {% if form.website_type.errors %}
+        <p class="text-danger text-xs mt-1.5 font-medium">{{ form.website_type.errors.0 }}</p>
+        {% endif %}
+    </div>
+
+    <div class="form-subsection">
+        <div class="form-subsection-title">Scan settings</div>
+        <div class="form-subsection-desc">How deep the crawler goes on each scan.</div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="eyebrow block mb-1.5" for="{{ form.max_pages.id_for_label }}">{{ form.max_pages.label }}</label>
+                {{ form.max_pages }}
+                {% if form.max_pages.errors %}
+                <p class="text-danger text-xs mt-1.5 font-medium">{{ form.max_pages.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label class="eyebrow block mb-1.5" for="{{ form.max_depth.id_for_label }}">{{ form.max_depth.label }}</label>
+                {{ form.max_depth }}
+                {% if form.max_depth.errors %}
+                <p class="text-danger text-xs mt-1.5 font-medium">{{ form.max_depth.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-primary px-5 py-2.5 text-sm">Save</button>
+</form>
+{% endblock %}

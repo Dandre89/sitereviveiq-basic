@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load cachebust %}
+{% block title %}Sign up — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="flex items-center justify-center" style="min-height: 85vh;">
+    <div class="w-full max-w-sm">
+        <div class="text-center mb-7">
+            <img src="{% static_v 'img/logo-mark-96.png' %}" alt="SiteRevive IQ" class="mx-auto mb-4" style="width:44px;height:44px;border-radius:12px;object-fit:cover;">
+            <h1 class="text-xl font-medium tracking-tight">Start your Basic plan</h1>
+            <p class="text-sm text-muted mt-1">
+                {% if interval == "annual" %}$23.20/mo, billed annually{% else %}$29/mo{% endif %}, billed right away.
+            </p>
+        </div>
+        <div class="card p-6">
+            {% if form.non_field_errors %}
+            <p class="text-danger text-sm mb-4 font-medium">{{ form.non_field_errors.0 }}</p>
+            {% endif %}
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="interval" value="{{ interval }}">
+                <div>
+                    <label class="eyebrow block mb-1.5" for="id_full_name">Full name</label>
+                    <input type="text" name="full_name" id="id_full_name" required autofocus value="{{ form.full_name.value|default:'' }}">
+                    {% for error in form.full_name.errors %}<p class="text-danger text-xs mt-1">{{ error }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="eyebrow block mb-1.5" for="id_email">Email</label>
+                    <input type="email" name="email" id="id_email" required value="{{ form.email.value|default:'' }}">
+                    {% for error in form.email.errors %}<p class="text-danger text-xs mt-1">{{ error }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="eyebrow block mb-1.5" for="id_workspace_name">Agency / company name</label>
+                    <input type="text" name="workspace_name" id="id_workspace_name" required value="{{ form.workspace_name.value|default:'' }}">
+                    {% for error in form.workspace_name.errors %}<p class="text-danger text-xs mt-1">{{ error }}</p>{% endfor %}
+                </div>
+                <div>
+                    <label class="eyebrow block mb-1.5" for="id_password">Password</label>
+                    <input type="password" name="password" id="id_password" required>
+                    {% for error in form.password.errors %}<p class="text-danger text-xs mt-1">{{ error }}</p>{% endfor %}
+                </div>
+                <button type="submit" class="btn-primary w-full py-2.5 text-sm">Continue to payment</button>
+            </form>
+        </div>
+        <p class="text-center text-xs text-muted mt-5">
+            <a href="{% url 'billing:pricing' %}?interval={{ interval }}" class="hover:text-primary underline">Back to pricing</a>
+            &middot;
+            Already have an account? <a href="{% url 'accounts:login' %}" class="hover:text-primary underline">Log in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

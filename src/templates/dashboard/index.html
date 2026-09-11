@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-xl font-medium tracking-tight">Dashboard</h1>
+    <p class="text-sm text-muted mt-1">Overview across every website in this workspace.</p>
+</div>
+
+<div class="grid grid-cols-2 gap-5 mb-10">
+    <div id="tour-stat-websites" class="card card-accent flex items-center gap-4" style="padding: 24px 24px 24px 48px; border-left-color: var(--color-primary);">
+        <div class="icon-chip" style="background: color-mix(in srgb, var(--color-primary) 12%, transparent);">
+            <i data-lucide="globe" style="width:20px;height:20px" class="text-primary"></i>
+        </div>
+        <div>
+            <span class="eyebrow block mb-1.5">Total websites</span>
+            <span class="text-2xl font-medium leading-tight">{{ total_websites }}</span>
+        </div>
+    </div>
+    <div id="tour-stat-scans" class="card card-accent flex items-center gap-4" style="padding: 24px 24px 24px 48px; border-left-color: var(--color-secondary);">
+        <div class="icon-chip" style="background: color-mix(in srgb, var(--color-secondary) 12%, transparent);">
+            <i data-lucide="scan-line" style="width:20px;height:20px" class="text-secondary"></i>
+        </div>
+        <div>
+            <span class="eyebrow block mb-1.5">Total scans</span>
+            <span class="text-2xl font-medium leading-tight">{{ total_scans }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-2 gap-5 mb-10">
+    <div class="card p-5">
+        <span class="text-xs font-semibold text-muted block mb-3">Website scores</span>
+        {% if website_score_chart %}
+        <div style="position:relative; height:260px;"><canvas id="chart-website-scores"></canvas></div>
+        {% else %}
+        <div class="text-center text-muted text-xs py-16">Run a scan on a website to see scores here.</div>
+        {% endif %}
+    </div>
+    <div class="card p-5">
+        <span class="text-xs font-semibold text-muted block mb-3">Scan status breakdown</span>
+        {% if scan_status_chart %}
+        <div style="position:relative; height:220px;"><canvas id="chart-scan-status"></canvas></div>
+        {% else %}
+        <div class="text-center text-muted text-xs py-16">No scans yet.</div>
+        {% endif %}
+    </div>
+</div>
+
+{{ website_score_chart|json_script:"data-website-scores" }}
+{{ scan_status_chart|json_script:"data-scan-status" }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (!window.Chart) return;
+
+    var scoreData = JSON.parse(document.getElementById('data-website-scores').textContent);
+    var scoreCanvas = document.getElementById('chart-website-scores');
+    if (scoreCanvas && scoreData.length) {
+        new Chart(scoreCanvas, {
+            type: 'bar',
+            data: {
+                labels: scoreData.map(function (d) { return d.label; }),
+                datasets: [{
+                    label: 'Score',
+                    data: scoreData.map(function (d) { return d.score; }),
+                    backgroundColor: SRIQCharts.cssVar('--color-primary'),
+                    borderRadius: 6,
+                    maxBarThickness: 22,
+                }],
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { min: 0, max: 100, grid: { color: SRIQCharts.gridColor() } },
+                    y: { grid: { display: false } },
+                },
+                plugins: { legend: { display: false } },
+            },
+        });
+    }
+
+    var statusData = JSON.parse(document.getElementById('data-scan-status').textContent);
+    var statusCanvas = document.getElementById('chart-scan-status');
+    if (statusCanvas && statusData.length) {
+        var palette = SRIQCharts.palette();
+        new Chart(statusCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(function (d) { return d.label; }),
+                datasets: [{
+                    data: statusData.map(function (d) { return d.count; }),
+                    backgroundColor: statusData.map(function (_, i) { return palette[i % palette.length]; }),
+                    borderWidth: 0,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: { legend: { position: 'right' } },
+            },
+        });
+    }
+});
+</script>
+
+<div id="tour-running-scans" class="mb-10">
+    <h2 class="eyebrow mb-3">Scans currently running</h2>
+    <div class="card overflow-hidden">
+        {% if running_scans %}
+        <table class="data w-full text-left">
+            <tbody class="divide-y divide-primary/5">
+                {% for scan in running_scans %}
+                <tr>
+                    <td class="px-4 py-2.5">
+                        <a href="{% url 'scans:progress' scan.pk %}" class="font-semibold hover:text-primary">{{ scan.website.name }}</a>
+                    </td>
+                    <td class="px-4 py-2.5 text-right">
+                        <span class="pill pill-progress"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>{{ scan.get_status_display }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center px-4 py-8">
+            <p class="empty-state-title">No scans running</p>
+            <p class="empty-state-subtitle" style="margin-bottom:0;">Kick one off from a website's page.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid grid-cols-2 gap-6">
+    <div id="tour-recent-completed">
+        <h2 class="eyebrow mb-3">Recent completed scans</h2>
+        <div class="card overflow-hidden">
+            <table class="data w-full text-left">
+                <tbody class="divide-y divide-primary/5">
+                    {% for scan in recent_completed %}
+                    <tr>
+                        <td class="px-4 py-2.5 text-sm font-semibold"><a href="{% url 'scans:progress' scan.pk %}" class="hover:text-primary">{{ scan.website.name }}</a></td>
+                        <td class="px-4 py-2.5 text-sm text-muted text-right">{{ scan.completed_at|date:"M j, g:i A" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td class="px-5 py-6 text-sm text-muted">None yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div id="tour-recent-failed">
+        <h2 class="eyebrow mb-3">Recent failed scans</h2>
+        <div class="card overflow-hidden">
+            <table class="data w-full text-left">
+                <tbody class="divide-y divide-primary/5">
+                    {% for scan in recent_failed %}
+                    <tr>
+                        <td class="px-4 py-2.5 text-sm font-semibold"><a href="{% url 'scans:progress' scan.pk %}" class="hover:text-primary">{{ scan.website.name }}</a></td>
+                        <td class="px-4 py-2.5 text-right"><span class="pill pill-danger"><span class="w-1.5 h-1.5 rounded-full bg-danger"></span>{{ scan.failure_code|default:"failed" }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td class="px-5 py-6 text-sm text-muted">None yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

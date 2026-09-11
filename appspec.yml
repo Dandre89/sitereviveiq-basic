@@ -1,0 +1,27 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /opt/sitereviveiq
+    overwrite: true
+
+file_exists_behavior: OVERWRITE
+
+hooks:
+  BeforeInstall:
+    - location: ops/codedeploy-scripts/before_install.sh
+      timeout: 120
+      runas: root
+  AfterInstall:
+    - location: ops/codedeploy-scripts/after_install.sh
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: ops/codedeploy-scripts/application_start.sh
+      timeout: 300
+      runas: root
+  ValidateService:
+    - location: ops/codedeploy-scripts/validate_service.sh
+      timeout: 120
+      runas: root

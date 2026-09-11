@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Reports — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-xl font-medium tracking-tight">Reports</h1>
+    <p class="text-sm text-muted mt-1">Every Prospect Audit generated across all tracked websites.</p>
+</div>
+
+<form method="get" class="flex items-center gap-3 mb-4 flex-wrap">
+    <select name="website" onchange="this.form.submit()" style="width:auto; max-width:220px;">
+        <option value="">All websites</option>
+        {% for website in websites %}
+        <option value="{{ website.pk }}" {% if selected_website == website.pk|stringformat:"s" %}selected{% endif %}>{{ website.name }}</option>
+        {% endfor %}
+    </select>
+    <select name="rsort" onchange="this.form.submit()" style="width:auto; max-width:140px;">
+        <option value="newest" {% if selected_report_sort == "newest" %}selected{% endif %}>Newest first</option>
+        <option value="oldest" {% if selected_report_sort == "oldest" %}selected{% endif %}>Oldest first</option>
+    </select>
+    {% if selected_website %}
+    <a href="{% url 'reports:overview' %}" class="text-xs text-muted hover:text-primary font-semibold">Clear filters</a>
+    {% endif %}
+</form>
+
+{% if reports %}
+<div id="tour-reports-list" class="space-y-3">
+    {% for report in reports %}
+    <div class="card card-interactive p-5">
+        <div class="flex items-center justify-between gap-3">
+            <a href="{% url 'reports:detail' report.pk %}" class="flex-1 min-w-0">
+                <div class="font-medium text-sm">{{ report.get_report_type_display }}</div>
+                <div class="text-xs text-muted mt-1">{{ report.website.name }} &middot; {{ report.generated_at|date:"M j, Y g:i A" }}</div>
+            </a>
+            <div class="flex items-center gap-3 flex-shrink-0">
+                {% if request.can_edit %}
+                <form method="post" action="{% url 'reports:delete' report.pk %}" onsubmit="return confirm('Delete this report? This can\'t be undone.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="text-xs text-danger font-semibold hover:underline" aria-label="Delete report">Delete</button>
+                </form>
+                {% endif %}
+                <a href="{% url 'reports:detail' report.pk %}"><i data-lucide="chevron-right" style="width:18px;height:18px" class="text-muted"></i></a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    {% if selected_website %}
+    <p class="empty-state-title">No reports match this filter</p>
+    <p class="empty-state-subtitle" style="margin-bottom:0;">Try clearing it.</p>
+    {% else %}
+    <p class="empty-state-title">No reports generated yet</p>
+    <p class="empty-state-subtitle" style="margin-bottom:0;">Generate one from a website's Reports page once it has a completed scan.</p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

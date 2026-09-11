@@ -1,0 +1,161 @@
+{% if report.report_type == "prospect_audit" %}
+<div class="card p-6 mb-8">
+    <p class="text-sm leading-relaxed">{{ report.content.executive_summary }}</p>
+</div>
+
+<div class="grid grid-cols-2 gap-5 mb-10">
+    <div class="card card-accent flex items-center gap-4" style="padding: 24px 24px 24px 48px; border-left-color: var(--color-primary);">
+        {% if report.content.health_overview.overall_score is not None %}
+        {% include "_score_ring.html" with score=report.content.health_overview.overall_score label="Overall score" %}
+        {% else %}
+        <div>
+            <span class="eyebrow block mb-1.5">Overall score</span>
+            <span class="text-3xl font-medium text-muted">N/A</span>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card card-accent" style="padding: 24px 24px 24px 48px; border-left-color: var(--color-warning);">
+        <span class="eyebrow block mb-1.5">Competitive analysis</span>
+        <span class="text-sm font-semibold text-muted leading-relaxed">{{ report.content.competitive_weaknesses.note }}</span>
+    </div>
+</div>
+
+<h2 class="eyebrow mb-4">Top opportunities</h2>
+<div class="space-y-3 mb-10">
+    {% for issue in report.content.top_opportunities %}
+    <div class="card card-accent" style="padding: 20px 20px 20px 40px; border-left-color: {% if issue.priority_class == 'immediate_risk' %}var(--color-danger){% elif issue.priority_class == 'quick_win' %}var(--color-good){% elif issue.priority_class == 'growth_improvement' %}var(--color-secondary){% else %}var(--color-warning){% endif %};">
+        <div class="font-medium text-sm mb-1">{{ issue.title }}</div>
+        <div class="text-xs text-muted leading-relaxed mb-2">{{ issue.recommendation }}</div>
+        <div class="text-xs text-muted">{{ issue.affected_scope }}</div>
+    </div>
+    {% empty %}
+    <div class="card p-8 text-center text-muted">No open opportunities found.</div>
+    {% endfor %}
+</div>
+
+{% if report.content.next_step %}
+<div class="card p-6 mb-6">
+    <span class="eyebrow block mb-2">Next step</span>
+    <p class="text-sm leading-relaxed">{{ report.content.next_step }}</p>
+</div>
+{% endif %}
+
+{% elif report.report_type == "client_health" %}
+<div class="card p-6 mb-8">
+    <p class="text-sm leading-relaxed">{{ report.content.trend_summary }}</p>
+</div>
+
+<div class="grid grid-cols-2 gap-5 mb-10">
+    <div class="card card-accent flex items-center gap-4" style="padding: 24px 24px 24px 48px; border-left-color: var(--color-primary);">
+        {% if report.content.current_health.overall_score is not None %}
+        {% include "_score_ring.html" with score=report.content.current_health.overall_score label="Current score" %}
+        {% else %}
+        <div>
+            <span class="eyebrow block mb-1.5">Current score</span>
+            <span class="text-3xl font-medium text-muted">N/A</span>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card card-accent" style="padding: 24px 24px 24px 48px; border-left-color: {% if report.content.changes_since_prior_scan.overall_score_delta > 0 %}var(--color-good){% elif report.content.changes_since_prior_scan.overall_score_delta < 0 %}var(--color-danger){% else %}var(--color-text-secondary){% endif %};">
+        <span class="eyebrow block mb-1.5">Score change</span>
+        <span class="text-3xl font-medium">{{ report.content.changes_since_prior_scan.overall_score_delta|default:"0" }}</span>
+    </div>
+</div>
+
+<div class="grid grid-cols-3 gap-5 mb-10">
+    <div>
+        <h2 class="eyebrow mb-3">New problems ({{ report.content.new_problems|length }})</h2>
+        <div class="space-y-2">
+            {% for issue in report.content.new_problems %}
+            <div class="card p-4"><div class="text-sm font-semibold">{{ issue.title }}</div></div>
+            {% empty %}<div class="card p-4 text-xs text-muted">None</div>{% endfor %}
+        </div>
+    </div>
+    <div>
+        <h2 class="eyebrow mb-3">Resolved ({{ report.content.resolved_problems|length }})</h2>
+        <div class="space-y-2">
+            {% for issue in report.content.resolved_problems %}
+            <div class="card p-4"><div class="text-sm font-semibold">{{ issue.title }}</div></div>
+            {% empty %}<div class="card p-4 text-xs text-muted">None</div>{% endfor %}
+        </div>
+    </div>
+    <div>
+        <h2 class="eyebrow mb-3">Returned ({{ report.content.returned_problems|length }})</h2>
+        <div class="space-y-2">
+            {% for issue in report.content.returned_problems %}
+            <div class="card p-4"><div class="text-sm font-semibold">{{ issue.title }}</div></div>
+            {% empty %}<div class="card p-4 text-xs text-muted">None</div>{% endfor %}
+        </div>
+    </div>
+</div>
+
+<h2 class="eyebrow mb-4">Recommendations</h2>
+<div class="space-y-3">
+    {% for issue in report.content.recommendations %}
+    <div class="card p-5">
+        <div class="font-medium text-sm mb-1">{{ issue.title }}</div>
+        <div class="text-xs text-muted leading-relaxed">{{ issue.recommendation }}</div>
+    </div>
+    {% empty %}<div class="card p-8 text-center text-muted">Nothing open right now.</div>{% endfor %}
+</div>
+
+{% elif report.report_type == "renovation_results" %}
+<div class="grid grid-cols-3 gap-5 mb-10">
+    <div class="card card-accent flex items-center gap-4" style="padding: 24px 24px 24px 48px; border-left-color: var(--color-text-secondary);">
+        {% if report.content.before_and_after_scores.before is not None %}
+        {% include "_score_ring.html" with score=report.content.before_and_after_scores.before label="Before" %}
+        {% else %}
+        <div>
+            <span class="eyebrow block mb-1.5">Before</span>
+            <span class="text-3xl font-medium text-muted">N/A</span>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card card-accent flex items-center gap-4" style="padding: 24px 24px 24px 48px; border-left-color: var(--color-primary);">
+        {% if report.content.before_and_after_scores.after is not None %}
+        {% include "_score_ring.html" with score=report.content.before_and_after_scores.after label="After" %}
+        {% else %}
+        <div>
+            <span class="eyebrow block mb-1.5">After</span>
+            <span class="text-3xl font-medium text-muted">N/A</span>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card card-accent" style="padding: 24px 24px 24px 48px; border-left-color: {% if report.content.before_and_after_scores.delta > 0 %}var(--color-good){% elif report.content.before_and_after_scores.delta < 0 %}var(--color-danger){% else %}var(--color-text-secondary){% endif %};">
+        <span class="eyebrow block mb-1.5">Change</span>
+        <span class="text-3xl font-medium">{{ report.content.before_and_after_scores.delta|default:"0" }}</span>
+    </div>
+</div>
+
+<h2 class="eyebrow mb-4">Resolved findings</h2>
+<div class="space-y-3 mb-10">
+    {% for issue in report.content.resolved_findings %}
+    <div class="card card-accent" style="padding: 20px 20px 20px 40px; border-left-color: var(--color-good);">
+        <div class="font-medium text-sm">{{ issue.title }}</div>
+        <div class="text-xs text-muted mt-1">{{ issue.affected_scope }}</div>
+    </div>
+    {% empty %}<div class="card p-8 text-center text-muted">Nothing resolved in this comparison.</div>{% endfor %}
+</div>
+
+<h2 class="eyebrow mb-4">Remaining opportunities</h2>
+<div class="space-y-3 mb-10">
+    {% for issue in report.content.remaining_opportunities %}
+    <div class="card p-5">
+        <div class="font-medium text-sm mb-1">{{ issue.title }}</div>
+        <div class="text-xs text-muted leading-relaxed">{{ issue.recommendation }}</div>
+    </div>
+    {% empty %}<div class="card p-8 text-center text-muted">All clear.</div>{% endfor %}
+</div>
+
+<div class="card p-6 mb-6">
+    <span class="eyebrow block mb-2">Evidence</span>
+    <p class="text-sm text-muted leading-relaxed italic">{{ report.content.evidence.note }}</p>
+</div>
+
+{% if report.content.next_phase %}
+<div class="card p-6">
+    <span class="eyebrow block mb-2">Next phase</span>
+    <p class="text-sm leading-relaxed">{{ report.content.next_phase.title }}</p>
+</div>
+{% endif %}
+{% endif %}

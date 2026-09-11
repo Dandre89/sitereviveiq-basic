@@ -1,0 +1,60 @@
+{% if scan.status in "queued,validating,crawling,analyzing" %}
+<div id="scan-progress"
+     hx-get="{% url 'scans:progress' scan.pk %}"
+     hx-trigger="every 3s"
+     hx-swap="outerHTML">
+    <div class="card p-6 max-w-md mb-6">
+        <span class="pill pill-progress mb-4"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>{{ scan.get_status_display }}</span>
+
+        {% if scan.pages_discovered %}
+        <div class="progress-track mb-1.5">
+            <div class="progress-fill" style="width: {% widthratio scan.pages_completed scan.pages_discovered 100 %}%;"></div>
+        </div>
+        <p class="text-xs text-muted mb-4">{{ scan.pages_completed }} of {{ scan.pages_discovered }} pages discovered</p>
+        {% else %}
+        <div class="progress-track mb-4"><div class="progress-fill progress-fill-indeterminate"></div></div>
+        {% endif %}
+
+        <div class="space-y-2.5">
+            <div class="flex items-center justify-between text-sm">
+                <span class="flex items-center gap-2 text-muted"><i data-lucide="file-text" style="width:15px;height:15px"></i>Discovered</span>
+                <span class="font-medium">{{ scan.pages_discovered }}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+                <span class="flex items-center gap-2 text-muted"><i data-lucide="check-circle" style="width:15px;height:15px" class="text-good"></i>Completed</span>
+                <span class="font-medium">{{ scan.pages_completed }}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+                <span class="flex items-center gap-2 text-muted"><i data-lucide="alert-triangle" style="width:15px;height:15px" class="text-danger"></i>Failed</span>
+                <span class="font-medium">{{ scan.pages_failed }}</span>
+            </div>
+        </div>
+    </div>
+    {% include "scans/_event_log.html" %}
+</div>
+{% else %}
+<div id="scan-progress">
+    <div class="card p-6 max-w-md mb-6">
+        {% if scan.status == "completed" %}
+        <span class="pill pill-good mb-4"><span class="w-1.5 h-1.5 rounded-full bg-good"></span>{{ scan.get_status_display }}</span>
+        {% else %}
+        <span class="pill pill-danger mb-4"><span class="w-1.5 h-1.5 rounded-full bg-danger"></span>{{ scan.get_status_display }}</span>
+        {% endif %}
+        <div class="space-y-2.5 mb-4">
+            <div class="flex items-center justify-between text-sm">
+                <span class="flex items-center gap-2 text-muted"><i data-lucide="check-circle" style="width:15px;height:15px" class="text-good"></i>Completed</span>
+                <span class="font-medium">{{ scan.pages_completed }}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+                <span class="flex items-center gap-2 text-muted"><i data-lucide="alert-triangle" style="width:15px;height:15px" class="text-danger"></i>Failed</span>
+                <span class="font-medium">{{ scan.pages_failed }}</span>
+            </div>
+        </div>
+        {% if scan.failure_message %}
+        <p class="text-sm text-danger mb-4">{{ scan.failure_message }}</p>
+        {% endif %}
+        <a href="{% url 'websites:detail' scan.website.pk %}" class="btn-primary px-4 py-2.5 text-sm inline-block">View results</a>
+    </div>
+    {% include "scans/_event_log.html" %}
+</div>
+{% endif %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Checkout canceled — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="client-report-shell">
+    <div class="card p-10 text-center" style="margin-top: 60px; max-width: 480px; margin-left:auto; margin-right:auto;">
+        <p class="empty-state-title">No charge was made</p>
+        <p class="empty-state-subtitle">Your account is created — you just haven't finished payment yet. Pick up where you left off whenever you're ready.</p>
+
+        {% if request.user.is_authenticated %}
+        <form method="post" action="{% url 'billing:retry_checkout' %}" class="mt-6">
+            {% csrf_token %}
+            <input type="hidden" name="interval" value="{{ interval }}">
+            <button type="submit" class="btn-primary px-5 py-2.5 text-sm">Finish checkout</button>
+        </form>
+        {% else %}
+        <a href="{% url 'billing:pricing' %}" class="btn-primary px-5 py-2.5 text-sm inline-block mt-6">Back to pricing</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

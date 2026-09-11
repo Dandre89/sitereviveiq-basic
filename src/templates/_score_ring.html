@@ -1,0 +1,11 @@
+<svg width="56" height="56" viewBox="0 0 56 56" class="score-ring" aria-hidden="true">
+    <circle cx="28" cy="28" r="24" fill="none" stroke-width="5" class="score-ring-track"></circle>
+    <circle cx="28" cy="28" r="24" fill="none" stroke-width="5" stroke-linecap="round"
+            stroke-dasharray="{% widthratio score 100 150.8 %} 150.8" transform="rotate(-90 28 28)"
+            class="score-ring-fill {% if score >= 80 %}score-ring-good{% elif score >= 50 %}score-ring-warn{% else %}score-ring-danger{% endif %}"></circle>
+    <text x="28" y="32" text-anchor="middle" class="score-ring-text">{{ score }}</text>
+</svg>
+<div>
+    <span class="eyebrow block mb-1.5">{{ label }}</span>
+    <span class="text-xs font-medium {% if score >= 80 %}text-good{% elif score >= 50 %}text-warn{% else %}text-danger{% endif %}">{% if score >= 80 %}Good{% elif score >= 50 %}Needs work{% else %}Poor{% endif %}</span>
+</div>

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% load sort_tags %}
+{% block title %}Issues — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-xl font-medium tracking-tight">Issues</h1>
+    <p class="text-sm text-muted mt-1">Every issue across all tracked websites, ranked by priority.{% if issues %} ({{ issues|length }}){% endif %}</p>
+</div>
+
+<form id="tour-issue-filters" method="get" class="flex items-center gap-3 mb-6 flex-wrap">
+    <select name="website" onchange="this.form.submit()" style="width:auto; max-width:220px;">
+        <option value="">All websites</option>
+        {% for website in websites %}
+        <option value="{{ website.pk }}" {% if selected_website == website.pk|stringformat:"s" %}selected{% endif %}>{{ website.name }}</option>
+        {% endfor %}
+    </select>
+    <select name="category" onchange="this.form.submit()" style="width:auto; max-width:180px;">
+        <option value="">All categories</option>
+        {% for value, label in categories %}
+        <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="severity" onchange="this.form.submit()" style="width:auto; max-width:160px;">
+        <option value="">All severities</option>
+        {% for value, label in severities %}
+        <option value="{{ value }}" {% if selected_severity == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="status" onchange="this.form.submit()" style="width:auto; max-width:160px;">
+        <option value="">All statuses</option>
+        {% for value, label in statuses %}
+        <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    {% if selected_website or selected_category or selected_severity or selected_status != "open" %}
+    <a href="{% url 'findings:inbox' %}" class="text-xs text-muted hover:text-primary font-semibold">Reset to open issues</a>
+    {% endif %}
+</form>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+    <div class="card p-5">
+        <span class="text-xs font-semibold text-muted block mb-3">By category</span>
+        {% if issues_by_category %}
+        <div style="position:relative; height:200px;"><canvas id="chart-issues-category"></canvas></div>
+        {% else %}
+        <div class="text-center text-muted text-xs py-10">No issues match these filters.</div>
+        {% endif %}
+    </div>
+    <div class="card p-5">
+        <span class="text-xs font-semibold text-muted block mb-3">By severity</span>
+        {% if issues_by_severity %}
+        <div style="position:relative; height:200px;"><canvas id="chart-issues-severity"></canvas></div>
+        {% else %}
+        <div class="text-center text-muted text-xs py-10">No issues match these filters.</div>
+        {% endif %}
+    </div>
+</div>
+
+{{ issues_by_category|json_script:"data-issues-category" }}
+{{ issues_by_severity|json_script:"data-issues-severity" }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (!window.Chart) return;
+
+    var categoryData = JSON.parse(document.getElementById('data-issues-category').textContent);
+    var categoryCanvas = document.getElementById('chart-issues-category');
+    if (categoryCanvas && categoryData.length) {
+        var palette = SRIQCharts.palette();
+        new Chart(categoryCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: categoryData.map(function (d) { return d.label; }),
+                datasets: [{
+                    data: categoryData.map(function (d) { return d.count; }),
+                    backgroundColor: categoryData.map(function (_, i) { return palette[i % palette.length]; }),
+                    borderWidth: 0,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: { legend: { position: 'right' } },
+            },
+        });
+    }
+
+    var severityData = JSON.parse(document.getElementById('data-issues-severity').textContent);
+    var severityCanvas = document.getElementById('chart-issues-severity');
+    if (severityCanvas && severityData.length) {
+        new Chart(severityCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: severityData.map(function (d) { return d.label; }),
+                datasets: [{
+                    data: severityData.map(function (d) { return d.count; }),
+                    backgroundColor: severityData.map(function (d) { return SRIQCharts.severityColor(d.label); }),
+                    borderWidth: 0,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: { legend: { position: 'right' } },
+            },
+        });
+    }
+});
+</script>
+
+<div id="tour-issue-table" class="card overflow-hidden">
+    <table class="data w-full text-left">
+        <thead>
+            <tr>
+                <th class="px-4 py-2.5">{% sort_header "title" "Issue" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "website" "Website" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "priority" "Priority" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "severity" "Severity" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "category" "Category" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "status" "Status" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "where" "Where" %}</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-primary/5">
+            {% for issue in issues %}
+            <tr>
+                <td class="px-4 py-2.5 font-medium">
+                    <a href="{% url 'findings:detail' issue.pk %}" class="hover:text-primary">{{ issue.title }}</a>
+                </td>
+                <td class="px-4 py-2.5">
+                    <a href="{% url 'websites:detail' issue.website.pk %}" class="hover:text-primary font-semibold">{{ issue.website.name }}</a>
+                </td>
+                <td class="px-4 py-2.5">
+                    {% if issue.priority_class == "immediate_risk" %}
+                    <span class="pill pill-danger"><span class="w-1.5 h-1.5 rounded-full bg-danger"></span>Immediate risk</span>
+                    {% elif issue.priority_class == "quick_win" %}
+                    <span class="pill pill-good"><span class="w-1.5 h-1.5 rounded-full bg-good"></span>Quick win</span>
+                    {% elif issue.priority_class == "growth_improvement" %}
+                    <span class="pill pill-progress"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>Growth</span>
+                    {% elif issue.priority_class == "strategic_renovation" %}
+                    <span class="pill pill-warn"><span class="w-1.5 h-1.5 rounded-full bg-warn"></span>Strategic</span>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5 text-muted capitalize">{{ issue.current_severity }}</td>
+                <td class="px-4 py-2.5 text-muted">{{ issue.get_category_display }}</td>
+                <td class="px-4 py-2.5">
+                    {% if issue.status == "open" %}
+                    <span class="pill pill-danger">Open</span>
+                    {% elif issue.status == "resolved" %}
+                    <span class="pill pill-good">Resolved</span>
+                    {% elif issue.status == "ignored" %}
+                    <span class="pill pill-neutral">Ignored</span>
+                    {% else %}
+                    <span class="pill pill-progress">{{ issue.get_status_display }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5 text-muted">{{ issue.affected_scope|truncatechars:50 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-5 py-10 text-center text-muted">
+                {% if selected_website or selected_category or selected_severity or selected_status != "open" %}
+                No issues match these filters.
+                {% else %}
+                No open issues across any tracked website — either nothing's been scanned yet, or everything's clean.
+                {% endif %}
+            </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

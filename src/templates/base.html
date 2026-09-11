@@ -1,0 +1,320 @@
+{% load static %}
+{% load cachebust %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SiteRevive IQ{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="{% static_v 'img/favicon.ico' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static_v 'img/favicon-32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static_v 'img/favicon-16.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static_v 'img/apple-touch-icon.png' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static_v 'css/theme.css' %}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.3/htmx.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        primary: 'var(--color-primary)',
+                        secondary: 'var(--color-secondary)',
+                        page: 'var(--color-page-bg)',
+                        ink: 'var(--color-text)',
+                        muted: 'var(--color-text-secondary)',
+                        good: '#10b981',
+                        warn: '#ffa726',
+                        danger: '#f44336',
+                    },
+                }
+            }
+        }
+    </script>
+    <script>
+        // Runs before paint so the drawer never "flashes" open then closes on load.
+        (function () {
+            var collapsed = localStorage.getItem('sriq-drawer-collapsed') === '1';
+            if (collapsed) document.documentElement.classList.add('drawer-collapsed');
+        })();
+    </script>
+    <script>
+        // Runs before paint so the page never flashes the default theme first.
+        (function () {
+            var theme = localStorage.getItem('sriq-theme') || 'obsidianlight';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+</head>
+<body data-tour-page="{{ request.resolver_match.view_name }}">
+    <div class="flex min-h-screen {% if not user.is_authenticated or hide_chrome %}no-sidebar{% endif %}">
+
+        {% if user.is_authenticated and not hide_chrome %}
+        <aside id="sidebar" class="fixed h-screen flex flex-col">
+            <div class="sidebar-divider flex items-center gap-3 px-5 py-6 border-b">
+                <button id="drawer-toggle-btn" class="sidebar-icon-btn w-9 h-9 flex items-center justify-center flex-shrink-0" aria-label="Toggle menu">
+                    <i data-lucide="menu" style="width:20px;height:20px"></i>
+                </button>
+                <img src="{% static_v 'img/logo-mark-96.png' %}" alt="SiteRevive IQ" class="w-7 h-7 rounded-md flex-shrink-0" style="object-fit:cover;">
+                <div class="sidebar-logo-text flex flex-col items-end leading-none">
+                    <span class="font-bold text-lg tracking-tight">SiteRevive IQ</span>
+                    <span class="sidebar-tier-label" style="font-size:10px;font-weight:600;letter-spacing:.04em;opacity:.75;margin-top:2px;color:#fff;">Basic</span>
+                </div>
+            </div>
+            <nav class="flex-1 p-2">
+                <a id="nav-dashboard" href="{% url 'core:dashboard' %}" class="sidebar-item flex items-center gap-3 px-4 py-3 mx-1 my-1 text-sm {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i data-lucide="layout-dashboard" style="width:18px;height:18px" class="flex-shrink-0"></i>
+                    <span class="sidebar-label">Dashboard</span>
+                </a>
+                <a id="nav-websites" href="{% url 'websites:list' %}" class="sidebar-item flex items-center gap-3 px-4 py-3 mx-1 my-1 text-sm {% if request.resolver_match.app_name == 'websites' %}active{% endif %}">
+                    <i data-lucide="globe" style="width:18px;height:18px" class="flex-shrink-0"></i>
+                    <span class="sidebar-label">Websites</span>
+                </a>
+                <a id="nav-issues" href="{% url 'findings:inbox' %}" class="sidebar-item flex items-center gap-3 px-4 py-3 mx-1 my-1 text-sm {% if request.resolver_match.app_name == 'findings' %}active{% endif %}">
+                    <i data-lucide="list-checks" style="width:18px;height:18px" class="flex-shrink-0"></i>
+                    <span class="sidebar-label">Issues</span>
+                </a>
+                <a id="nav-reports" href="{% url 'reports:overview' %}" class="sidebar-item flex items-center gap-3 px-4 py-3 mx-1 my-1 text-sm {% if request.resolver_match.app_name == 'reports' %}active{% endif %}">
+                    <i data-lucide="file-text" style="width:18px;height:18px" class="flex-shrink-0"></i>
+                    <span class="sidebar-label">Reports</span>
+                </a>
+                <a id="nav-team" href="{% url 'workspaces:list' %}" class="sidebar-item flex items-center gap-3 px-4 py-3 mx-1 my-1 text-sm {% if request.resolver_match.app_name == 'workspaces' %}active{% endif %}">
+                    <i data-lucide="users" style="width:18px;height:18px" class="flex-shrink-0"></i>
+                    <span class="sidebar-label">Team</span>
+                </a>
+                <a id="nav-settings" href="{% url 'core:settings' %}" class="sidebar-item flex items-center gap-3 px-4 py-3 mx-1 my-1 text-sm {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
+                    <i data-lucide="settings" style="width:18px;height:18px" class="flex-shrink-0"></i>
+                    <span class="sidebar-label">Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-divider sidebar-footer border-t p-4 text-xs">
+                <div class="sidebar-footer-text mb-2 truncate">{{ user.email }}</div>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="sidebar-footer-link flex items-center gap-2 font-semibold">
+                        <i data-lucide="log-out" style="width:15px;height:15px" class="flex-shrink-0"></i>
+                        <span class="sidebar-footer-text">Log out</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+        {% endif %}
+
+        <main id="main-content" class="flex-1 px-10 py-8">
+
+            {% if user.is_authenticated and not hide_chrome %}
+            <div class="topbar flex items-center justify-end gap-2 mb-6">
+                <div class="topbar-demo-toggle flex items-center gap-2" title="Demo mode — guided walkthrough of this page">
+                    <i data-lucide="graduation-cap" style="width:16px;height:16px" class="flex-shrink-0"></i>
+                    <span class="sidebar-label" style="color:inherit;">Demo</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="tour-toggle-checkbox">
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+                <a href="{% url 'monitoring:list' %}" class="topbar-icon-btn w-9 h-9 flex items-center justify-center" aria-label="Notifications">
+                    <i data-lucide="bell" style="width:18px;height:18px"></i>
+                    {% if unread_notification_count %}
+                    <span class="topbar-badge">{{ unread_notification_count }}</span>
+                    {% endif %}
+                </a>
+                {% if request.can_edit %}
+                <a href="{% url 'websites:add' %}" class="topbar-icon-btn w-9 h-9 flex items-center justify-center" aria-label="Add website">
+                    <i data-lucide="plus" style="width:18px;height:18px"></i>
+                </a>
+                {% endif %}
+                <div class="account-menu">
+                    <button type="button" id="account-menu-btn" class="topbar-icon-btn w-9 h-9 flex items-center justify-center" aria-label="Account menu">
+                        <i data-lucide="circle-user-round" style="width:19px;height:19px"></i>
+                    </button>
+                    <div id="account-menu-panel" class="account-menu-panel hidden">
+                        <div class="account-menu-email">{{ user.email }}</div>
+                        <a href="{% url 'core:settings' %}" class="account-menu-item">
+                            <i data-lucide="settings" style="width:15px;height:15px"></i> Settings
+                        </a>
+                        <form method="post" action="{% url 'accounts:logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="account-menu-item">
+                                <i data-lucide="log-out" style="width:15px;height:15px"></i> Log out
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if messages %}
+            <ul class="mb-6 space-y-2">
+                {% for message in messages %}
+                <li class="rounded-xl px-4 py-3 text-sm {% if message.tags == 'error' %}bg-red-50 text-danger{% else %}bg-emerald-50 text-good{% endif %}">
+                    {{ message }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% if user.is_authenticated and not hide_chrome %}
+    <svg id="tour-svg" class="tour-svg">
+        <line id="tour-connector-line" x1="0" y1="0" x2="0" y2="0"></line>
+    </svg>
+    <div id="tour-highlight" class="tour-highlight hidden"></div>
+
+    <div id="tour-window" class="tour-window hidden">
+        <div id="tour-window-handle" class="tour-window-handle">
+            <span id="tour-window-title" class="tour-window-title">Guided tour</span>
+            <button type="button" id="tour-close-btn" class="tour-window-close" aria-label="Close tour">
+                <i data-lucide="x" style="width:14px;height:14px"></i>
+            </button>
+        </div>
+        <div class="tour-window-body">
+            <p id="tour-step-text" class="tour-step-text"></p>
+        </div>
+        <div class="tour-window-footer">
+            <span id="tour-step-counter" class="tour-step-counter"></span>
+            <div class="tour-window-controls">
+                <button type="button" id="tour-prev-btn" class="tour-ctrl-btn" aria-label="Previous step">
+                    <i data-lucide="chevron-left" style="width:15px;height:15px"></i>
+                </button>
+                <button type="button" id="tour-play-btn" class="tour-ctrl-btn" aria-label="Play">
+                    <i data-lucide="play" style="width:15px;height:15px"></i>
+                </button>
+                <button type="button" id="tour-next-btn" class="tour-ctrl-btn tour-ctrl-btn-primary" aria-label="Next step">
+                    <span id="tour-next-label">Next</span>
+                    <i data-lucide="chevron-right" style="width:15px;height:15px"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <script src="{% static_v 'js/tour.js' %}"></script>
+    {% endif %}
+
+    <script>
+        window.SRIQ = {
+            toggleDrawer: function () {
+                var collapsed = document.documentElement.classList.toggle('drawer-collapsed');
+                localStorage.setItem('sriq-drawer-collapsed', collapsed ? '1' : '0');
+            },
+            setTheme: function (theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('sriq-theme', theme);
+            },
+            getTheme: function () {
+                return localStorage.getItem('sriq-theme') || 'obsidianlight';
+            },
+        };
+
+        // Shared Chart.js theming — every chart on the site should pull
+        // colors from the active theme's CSS variables instead of
+        // hardcoding hex, so a theme switch doesn't leave charts looking
+        // wrong. Status colors (good/warning/danger) are constant across
+        // themes by design (see theme.css), so charts that encode
+        // severity/status reuse those directly instead of the 6-color
+        // categorical palette.
+        window.SRIQCharts = {
+            cssVar: function (name) {
+                return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            },
+            textColor: function () { return this.cssVar('--color-text-secondary'); },
+            gridColor: function () {
+                var rgb = this.cssVar('--color-text-secondary');
+                return 'color-mix(in srgb, ' + rgb + ' 15%, transparent)';
+            },
+            statusColors: function () {
+                return {
+                    good: this.cssVar('--color-good') || '#10b981',
+                    warning: this.cssVar('--color-warning') || '#ffa726',
+                    danger: this.cssVar('--color-danger') || '#f44336',
+                };
+            },
+            // 6-color categorical palette for charts with several series
+            // (e.g. issue category breakdowns) — first two are theme-aware,
+            // the rest are fixed so they stay legible against every theme.
+            palette: function () {
+                var s = this.statusColors();
+                return [
+                    this.cssVar('--color-primary'),
+                    this.cssVar('--color-secondary'),
+                    s.good,
+                    s.warning,
+                    s.danger,
+                    '#8b8b93',
+                ];
+            },
+            severityColor: function (label) {
+                var s = this.statusColors();
+                var map = { Critical: s.danger, High: s.warning, Medium: this.cssVar('--color-primary'), Low: s.good };
+                return map[label] || '#8b8b93';
+            },
+            applyDefaults: function () {
+                if (!window.Chart) return;
+                Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+                Chart.defaults.color = this.textColor();
+                Chart.defaults.plugins.legend.labels.usePointStyle = true;
+                Chart.defaults.plugins.legend.labels.boxWidth = 8;
+                Chart.defaults.plugins.legend.labels.boxHeight = 8;
+                // Chart.js sizes the axis area to exactly the measured tick
+                // label width with no buffer, so the leading edge of the
+                // leftmost y-axis label on a horizontal bar chart (e.g. a
+                // long website/roadmap name) can clip by a pixel or two.
+                // A few px of layout padding on every side fixes that for
+                // every chart on the site, not just horizontal bars.
+                Chart.defaults.layout.padding = { left: 8, right: 8, top: 4, bottom: 4 };
+            },
+        };
+        // Applied immediately, not inside DOMContentLoaded: Chart.js is
+        // already loaded by this point (its <script> tag is in <head>,
+        // parsed before <body>), and this only mutates Chart.defaults —
+        // no DOM access needed. Page-specific chart scripts further up
+        // the page (inside the main content area) register their own
+        // DOMContentLoaded listener earlier in document order, so if this
+        // waited for DOMContentLoaded too, it would fire AFTER those
+        // charts already got created — which is exactly what was
+        // happening, and why the layout padding fix below never actually
+        // applied to any chart.
+        SRIQCharts.applyDefaults();
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.lucide) { lucide.createIcons(); }
+
+            var toggleBtn = document.getElementById('drawer-toggle-btn');
+            if (toggleBtn) toggleBtn.addEventListener('click', SRIQ.toggleDrawer);
+
+            var accountBtn = document.getElementById('account-menu-btn');
+            var accountPanel = document.getElementById('account-menu-panel');
+            if (accountBtn && accountPanel) {
+                accountBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    accountPanel.classList.toggle('hidden');
+                });
+                document.addEventListener('click', function (e) {
+                    if (!accountPanel.classList.contains('hidden') && !accountPanel.contains(e.target) && e.target !== accountBtn) {
+                        accountPanel.classList.add('hidden');
+                    }
+                });
+            }
+
+            var tourToggle = document.getElementById('tour-toggle-checkbox');
+            if (tourToggle && window.SRIQTour) {
+                tourToggle.checked = SRIQTour.isActive();
+                tourToggle.addEventListener('change', function () {
+                    SRIQTour.toggle();
+                });
+                if (SRIQTour.isActive()) { SRIQTour.start(); }
+            }
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            if (window.lucide) { lucide.createIcons(); }
+        });
+    </script>
+</body>
+</html>

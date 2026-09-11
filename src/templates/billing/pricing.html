@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Pricing — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="flex items-center justify-center" style="min-height: 85vh;">
+    <div class="w-full" style="max-width: 420px;">
+        <div class="text-center mb-8">
+            <p class="eyebrow mb-2">Pricing</p>
+            <h1 class="text-2xl font-medium tracking-tight mb-2">One website. Full deterministic scoring.</h1>
+            <p class="text-sm text-muted">Built for a solo consultant or a single client engagement.</p>
+
+            <div class="flex items-center justify-center gap-2 mt-6">
+                <a href="?interval=monthly" class="px-4 py-1.5 text-xs {% if interval == 'monthly' %}btn-primary{% else %}btn-ghost{% endif %}">Monthly</a>
+                <a href="?interval=annual" class="px-4 py-1.5 text-xs {% if interval == 'annual' %}btn-primary{% else %}btn-ghost{% endif %}">Annual — save 20%</a>
+            </div>
+        </div>
+
+        <div class="card p-6">
+            <p class="text-xs font-semibold text-muted mb-1">FOR A FOCUSED ENGAGEMENT</p>
+            <h2 class="text-lg font-semibold mb-3">Basic</h2>
+            <p class="mb-1"><span class="text-2xl font-bold">${{ price }}</span><span class="text-sm text-muted">/month</span></p>
+            {% if note %}<p class="text-xs text-muted mb-4">{{ note }}</p>{% else %}<p class="text-xs text-muted mb-4">&nbsp;</p>{% endif %}
+            <p class="text-sm text-muted mb-5">One website, full deterministic scoring across four core categories, monthly scheduled scans, and the audit report built to win a prospect's business.</p>
+            <a href="{% url 'accounts:signup' %}?interval={{ interval }}" class="btn-primary w-full py-2.5 text-sm block text-center">Start Basic</a>
+        </div>
+
+        <p class="text-center text-xs text-muted mt-6">Need more than one website? <a href="mailto:hello@sitereviveiq.com?subject=Pro%20plan%20inquiry" class="hover:text-primary underline">Ask about Pro</a>.</p>
+        <p class="text-center text-xs text-muted mt-2">Payments processed by Stripe. Test mode — no charge is real yet.</p>
+    </div>
+</div>
+{% endblock %}

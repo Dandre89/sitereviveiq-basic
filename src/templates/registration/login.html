@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load cachebust %}
+{% block title %}Log in — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="flex items-center justify-center" style="min-height: 80vh;">
+    <div class="w-full max-w-sm">
+        <div class="text-center mb-7">
+            <img src="{% static_v 'img/logo-mark-96.png' %}" alt="SiteRevive IQ" class="mx-auto mb-4" style="width:44px;height:44px;border-radius:12px;object-fit:cover;">
+            <h1 class="text-xl font-medium tracking-tight">Welcome back</h1>
+            <p class="text-sm text-muted mt-1">Log in to SiteRevive IQ</p>
+        </div>
+        <div class="card p-6">
+            {% if form.errors %}
+            <p class="text-danger text-sm mb-4 font-medium">Incorrect email or password.</p>
+            {% endif %}
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="eyebrow block mb-1.5" for="id_username">Email</label>
+                    <input type="email" name="username" id="id_username" required autofocus>
+                </div>
+                <div>
+                    <label class="eyebrow block mb-1.5" for="id_password">Password</label>
+                    <input type="password" name="password" id="id_password" required>
+                </div>
+                <button type="submit" class="btn-primary w-full py-2.5 text-sm">Log in</button>
+            </form>
+        </div>
+        <p class="text-center text-xs text-muted mt-5">New here? <a href="{% url 'billing:pricing' %}" class="hover:text-primary underline">See pricing and sign up</a>.</p>
+    </div>
+</div>
+{% endblock %}

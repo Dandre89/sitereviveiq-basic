@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Subscription inactive — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="client-report-shell">
+    <div class="card p-10 text-center" style="margin-top: 60px; max-width: 480px; margin-left:auto; margin-right:auto;">
+        <div class="icon-chip-sm icon-chip-danger" style="width:44px;height:44px;border-radius:12px;margin:0 auto 18px;">
+            <i data-lucide="lock" style="width:20px;height:20px"></i>
+        </div>
+
+        {% if subscription and subscription.status == "past_due" %}
+        <p class="empty-state-title">Your last payment didn't go through</p>
+        <p class="empty-state-subtitle">Update your payment method to restore access to {{ request.workspace.name }}.</p>
+        {% elif subscription and subscription.status == "unpaid" %}
+        <p class="empty-state-title">This workspace has an unpaid balance</p>
+        <p class="empty-state-subtitle">Settle the outstanding balance to restore access to {{ request.workspace.name }}.</p>
+        {% elif subscription and subscription.status == "canceled" %}
+        <p class="empty-state-title">This workspace's subscription was canceled</p>
+        <p class="empty-state-subtitle">Reach out to SiteRevive IQ or restart billing to get access back.</p>
+        {% elif subscription and subscription.is_linked %}
+        <p class="empty-state-title">This workspace's subscription isn't active</p>
+        <p class="empty-state-subtitle">Current status: {{ subscription.get_status_display }}.</p>
+        {% elif subscription and subscription.intended_interval %}
+        <p class="empty-state-title">You didn't finish setting up billing</p>
+        <p class="empty-state-subtitle">Your account is ready — just finish payment to unlock {{ request.workspace.name }}.</p>
+        {% else %}
+        <p class="empty-state-title">Billing isn't set up for this workspace yet</p>
+        <p class="empty-state-subtitle">Contact SiteRevive IQ to get {{ request.workspace.name }} linked to a subscription.</p>
+        {% endif %}
+
+        {% if subscription and subscription.is_linked %}
+        <form method="post" action="{% url 'billing:portal' %}" class="mt-6">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary px-5 py-2.5 text-sm">Manage billing</button>
+        </form>
+        {% elif subscription and subscription.intended_interval %}
+        <form method="post" action="{% url 'billing:retry_checkout' %}" class="mt-6">
+            {% csrf_token %}
+            <input type="hidden" name="interval" value="{{ subscription.intended_interval }}">
+            <button type="submit" class="btn-primary px-5 py-2.5 text-sm">Finish checkout</button>
+        </form>
+        {% endif %}
+
+        <p class="text-xs text-muted mt-6">Signed in as {{ request.user.email }}</p>
+        <form method="post" action="{% url 'accounts:logout' %}" class="mt-1">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-muted hover:text-primary font-semibold underline" style="background:none;border:none;padding:0;">Log out</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

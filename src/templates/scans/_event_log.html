@@ -1,0 +1,28 @@
+<div class="card overflow-hidden max-w-2xl">
+    <div class="px-4 py-2.5" style="border-bottom: 1px solid var(--color-border);">
+        <span class="eyebrow">Activity log</span>
+    </div>
+    <div style="max-height: 320px; overflow-y: auto;">
+        <table class="data w-full text-left">
+            <tbody class="divide-y divide-primary/5">
+                {% for event in events %}
+                <tr>
+                    <td class="px-4 py-2 text-xs text-muted whitespace-nowrap">{{ event.created_at|date:"g:i:s A" }}</td>
+                    <td class="px-4 py-2">
+                        {% if event.level == "error" %}
+                        <span class="pill pill-danger">Error</span>
+                        {% elif event.level == "warning" %}
+                        <span class="pill pill-warn">Warning</span>
+                        {% else %}
+                        <span class="pill pill-neutral">Info</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2 text-sm">{{ event.message }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="px-4 py-6 text-center text-muted text-sm">No activity recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

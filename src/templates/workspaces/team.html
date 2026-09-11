@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Team — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-xl font-medium tracking-tight">Team</h1>
+    <p class="text-sm text-muted mt-1">{{ request.workspace.name }} is a single-user workspace on Basic — team seats aren't included at this tier.</p>
+</div>
+
+<div id="tour-team-table" class="card overflow-hidden">
+    <table class="data w-full text-left">
+        <thead>
+            <tr>
+                <th class="px-4 py-2.5">Member</th>
+                <th class="px-4 py-2.5">Role</th>
+                <th class="px-4 py-2.5">Joined</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-primary/5">
+            {% if membership %}
+            <tr>
+                <td class="px-4 py-2.5">
+                    <div class="flex items-center gap-3">
+                        <div class="branding-logo-preview" style="width:30px;height:30px;border-radius:8px;">
+                            <span class="text-xs font-semibold" style="color:#fff;">{{ membership.user.email|slice:":1"|upper }}</span>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-sm">{{ membership.user.get_full_name|default:membership.user.email }}</div>
+                            {% if membership.user.get_full_name %}<div class="text-xs text-muted">{{ membership.user.email }}</div>{% endif %}
+                        </div>
+                        <span class="pill pill-neutral">You</span>
+                    </div>
+                </td>
+                <td class="px-4 py-2.5"><span class="pill pill-progress">Owner</span></td>
+                <td class="px-4 py-2.5 text-muted">{{ membership.created_at|date:"M j, Y" }}</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

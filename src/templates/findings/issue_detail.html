@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ issue.title }} — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <a href="{% url 'findings:inbox' %}" class="text-sm text-muted hover:text-primary flex items-center gap-1 mb-2">
+        <i data-lucide="arrow-left" style="width:14px;height:14px"></i> Issues
+    </a>
+    <div class="flex items-start justify-between gap-6">
+        <div>
+            <h1 class="text-xl font-medium tracking-tight">{{ issue.title }}</h1>
+            <p class="text-sm text-muted mt-1.5">
+                <a href="{% url 'websites:detail' issue.website.pk %}" class="hover:text-primary font-semibold">{{ issue.website.name }}</a>
+                · {{ issue.get_category_display }} · {{ issue.affected_scope }}
+            </p>
+        </div>
+        <div class="flex-shrink-0">
+            {% if issue.status == "open" %}
+            <span class="pill pill-danger">Open</span>
+            {% elif issue.status == "resolved" %}
+            <span class="pill pill-good">Resolved</span>
+            {% elif issue.status == "ignored" %}
+            <span class="pill pill-neutral">Ignored</span>
+            {% else %}
+            <span class="pill pill-progress">{{ issue.get_status_display }}</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-3 gap-4 mb-8">
+    <div class="card p-4">
+        <span class="eyebrow block mb-1.5">Severity</span>
+        <span class="font-medium text-sm capitalize">{{ issue.current_severity }}</span>
+    </div>
+    <div class="card p-4">
+        <span class="eyebrow block mb-1.5">First seen</span>
+        <span class="font-medium text-sm">{{ issue.first_seen_at|date:"M j, Y" }}</span>
+    </div>
+    <div class="card p-4">
+        <span class="eyebrow block mb-1.5">Last seen</span>
+        <span class="font-medium text-sm">{{ issue.last_seen_at|date:"M j, Y" }}</span>
+    </div>
+</div>
+
+{% if issue.recommendation %}
+<div class="card p-6 mb-6">
+    <h2 class="eyebrow mb-2">Recommendation</h2>
+    <p class="text-sm leading-relaxed">{{ issue.recommendation }}</p>
+</div>
+{% endif %}
+
+<div class="card p-6 mb-6">
+    <div class="flex items-center justify-between mb-2">
+        <h2 class="eyebrow" style="margin:0;">Suggested fix</h2>
+        {% if fix.confidence == "exact" %}
+        <span class="pill pill-good">Ready to use</span>
+        {% elif fix.confidence == "draft" %}
+        <span class="pill pill-warn">Draft — needs your copy</span>
+        {% endif %}
+    </div>
+    {% if fix.snippet %}
+    <textarea readonly rows="6" class="fix-snippet-box" onclick="this.select();" style="margin-bottom:10px;">{{ fix.snippet }}</textarea>
+    <p class="text-xs text-muted leading-relaxed">{{ fix.instructions }}</p>
+    {% if fix.confidence == "draft" %}
+    <p class="text-xs text-muted-faded italic leading-relaxed mt-2">This is a starting template, not finished copy — replace the bracketed part before using it.</p>
+    {% endif %}
+    {% else %}
+    <p class="text-sm text-muted leading-relaxed">No auto-generated snippet for this issue type yet — follow the recommendation above.{% if not issue.recommendation %} No specific guidance was captured for this finding.{% endif %}</p>
+    {% endif %}
+    <p class="text-xs text-muted-faded mt-4 leading-relaxed">SiteRevive IQ audits your site over HTTP — it doesn't have access to your source code or CMS, so this is the exact snippet to paste yourself, not something applied automatically.</p>
+</div>
+
+<div class="card p-6">
+    <h2 class="eyebrow mb-3">Update status</h2>
+    {% if request.can_edit %}
+    <form method="post" action="{% url 'findings:update_status' issue.pk %}" class="space-y-3 max-w-md" id="status-form">
+        {% csrf_token %}
+        <select name="status" id="status-select" onchange="document.getElementById('ignored-reason-wrap').style.display = this.value === 'ignored' ? 'block' : 'none';">
+            {% for value, label in statuses %}
+            <option value="{{ value }}" {% if issue.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <div id="ignored-reason-wrap" style="display: {% if issue.status == 'ignored' %}block{% else %}none{% endif %};">
+            <label class="eyebrow block mb-1.5" for="ignored_reason">Reason (optional)</label>
+            <textarea name="ignored_reason" id="ignored_reason" rows="2" placeholder="Why is this being ignored?">{{ issue.ignored_reason }}</textarea>
+        </div>
+        <button type="submit" class="btn-primary px-5 py-2.5 text-sm">Save status</button>
+    </form>
+    {% else %}
+    <p class="pill pill-neutral">{{ issue.get_status_display }}</p>
+    {% endif %}
+    {% if issue.status == "resolved" and issue.resolved_at %}
+    <p class="text-xs text-muted mt-3">Resolved {{ issue.resolved_at|date:"M j, Y g:i A" }}. If this issue is detected again on a future scan, it'll automatically reopen.</p>
+    {% endif %}
+</div>
+{% endblock %}

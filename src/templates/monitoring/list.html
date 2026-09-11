@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Notifications — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-8">
+    <div>
+        <h1 class="text-xl font-medium tracking-tight">Notifications</h1>
+        <p class="text-sm text-muted mt-1.5">Scan completions, critical findings, score drops, and issue changes.</p>
+    </div>
+    <form method="post" action="{% url 'monitoring:mark_all_read' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-ghost px-4 py-2.5 text-sm">Mark all read</button>
+    </form>
+</div>
+
+<form method="get" class="flex items-center gap-3 mb-6 flex-wrap">
+    <select name="website" onchange="this.form.submit()" style="width:auto; max-width:200px;">
+        <option value="">All websites</option>
+        {% for website in websites %}
+        <option value="{{ website.pk }}" {% if selected_website == website.pk|stringformat:"s" %}selected{% endif %}>{{ website.name }}</option>
+        {% endfor %}
+    </select>
+    <select name="type" onchange="this.form.submit()" style="width:auto; max-width:180px;">
+        <option value="">All types</option>
+        {% for value, label in notification_types %}
+        <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="read" onchange="this.form.submit()" style="width:auto; max-width:140px;">
+        <option value="">All</option>
+        <option value="unread" {% if selected_read == "unread" %}selected{% endif %}>Unread</option>
+        <option value="read" {% if selected_read == "read" %}selected{% endif %}>Read</option>
+    </select>
+    <select name="sort" onchange="this.form.submit()" style="width:auto; max-width:140px;">
+        <option value="newest" {% if selected_sort == "newest" %}selected{% endif %}>Newest first</option>
+        <option value="oldest" {% if selected_sort == "oldest" %}selected{% endif %}>Oldest first</option>
+    </select>
+    {% if selected_website or selected_type or selected_read %}
+    <a href="{% url 'monitoring:list' %}" class="text-xs text-muted hover:text-primary font-semibold">Clear filters</a>
+    {% endif %}
+</form>
+
+<div class="space-y-2">
+    {% for n in notifications %}
+    <div class="notification-item {% if n.is_read %}is-read{% endif %}">
+        {% if n.is_read %}
+        <div class="notification-dot-spacer"></div>
+        {% else %}
+        <div class="notification-dot"></div>
+        {% endif %}
+        <div class="icon-chip-sm {% if n.notification_type == 'critical_finding' or n.notification_type == 'score_drop' %}icon-chip-danger{% elif n.notification_type == 'scan_completed' or n.notification_type == 'proposal_response' %}icon-chip-good{% elif n.notification_type == 'new_opportunity' %}icon-chip-secondary{% else %}icon-chip-warn{% endif %}">
+            <i data-lucide="{% if n.notification_type == 'critical_finding' %}alert-triangle{% elif n.notification_type == 'score_drop' %}trending-down{% elif n.notification_type == 'scan_completed' %}check-circle{% elif n.notification_type == 'new_opportunity' %}lightbulb{% elif n.notification_type == 'proposal_response' %}thumbs-up{% else %}rotate-ccw{% endif %}" style="width:16px;height:16px"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-3">
+                <div class="notification-title">{{ n.title }}</div>
+                {% if not n.is_read %}
+                <form method="post" action="{% url 'monitoring:mark_read' n.pk %}" class="flex-shrink-0">
+                    {% csrf_token %}
+                    <button type="submit" class="text-xs text-muted hover:text-primary font-semibold whitespace-nowrap">Mark read</button>
+                </form>
+                {% endif %}
+            </div>
+            <div class="notification-message">{{ n.message }}</div>
+            <div class="notification-meta">
+                {% if n.website %}<a href="{% url 'websites:detail' n.website.pk %}" class="hover:text-primary font-semibold" style="color: var(--color-primary);">{{ n.website.name }}</a> · {% endif %}
+                {{ n.created_at|date:"M j, g:i A" }}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+        {% if selected_website or selected_type or selected_read %}
+        <p class="empty-state-title">No notifications match these filters</p>
+        <p class="empty-state-subtitle" style="margin-bottom:0;">Try clearing them.</p>
+        {% else %}
+        <p class="empty-state-title">No notifications yet</p>
+        <p class="empty-state-subtitle" style="margin-bottom:0;">Scan completions and critical findings will show up here.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

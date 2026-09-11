@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load sort_tags %}
+{% block title %}Websites — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-xl font-medium tracking-tight">Websites</h1>
+        <p class="text-sm text-muted mt-1">Every site being tracked in this workspace.</p>
+    </div>
+    {% if request.can_edit %}
+    <a id="tour-add-website" href="{% url 'websites:add' %}" class="btn-primary px-4 py-2.5 text-sm">Add website</a>
+    {% endif %}
+</div>
+
+<form id="tour-website-filters" method="get" class="flex items-center gap-3 mb-6 flex-wrap">
+    <select name="type" onchange="this.form.submit()" style="width:auto; max-width:180px;">
+        <option value="">All types</option>
+        {% for value, label in website_types %}
+        <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="status" onchange="this.form.submit()" style="width:auto; max-width:160px;">
+        <option value="">All statuses</option>
+        {% for value, label in statuses %}
+        <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    {% if selected_type or selected_status %}
+    <a href="{% url 'websites:list' %}" class="text-xs text-muted hover:text-primary font-semibold">Clear filters</a>
+    {% endif %}
+</form>
+
+<div id="tour-website-table" class="card overflow-hidden">
+    <table class="data w-full text-left">
+        <thead>
+            <tr>
+                <th class="px-4 py-2.5">{% sort_header "name" "Website" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "type" "Type" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "status" "Status" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "score" "Score" %}</th>
+                <th class="px-4 py-2.5">{% sort_header "last_scan" "Last scan" %}</th>
+                <th class="px-4 py-2.5"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-primary/5">
+            {% for website in websites %}
+            <tr>
+                <td class="px-4 py-2.5">
+                    <a href="{% url 'websites:detail' website.pk %}" class="font-semibold hover:text-primary">{{ website.name }}</a>
+                    <div class="text-muted text-xs mt-0.5">{{ website.normalized_host }}</div>
+                </td>
+                <td class="px-4 py-2.5 text-muted">{{ website.get_website_type_display }}</td>
+                <td class="px-4 py-2.5">
+                    {% if website.status == "active" %}
+                    <span class="pill pill-good"><span class="w-1.5 h-1.5 rounded-full bg-good"></span>Active</span>
+                    {% elif website.status == "paused" %}
+                    <span class="pill pill-warn"><span class="w-1.5 h-1.5 rounded-full bg-warn"></span>Paused</span>
+                    {% else %}
+                    <span class="pill pill-danger"><span class="w-1.5 h-1.5 rounded-full bg-danger"></span>Archived</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5">
+                    {% if website.last_scan.overall_score is not None %}
+                    <span class="font-medium {% if website.last_scan.overall_score >= 80 %}text-good{% elif website.last_scan.overall_score >= 50 %}text-warn{% else %}text-danger{% endif %}">{{ website.last_scan.overall_score }}</span><span class="text-muted text-xs">/100</span>
+                    {% else %}
+                    <span class="text-muted text-xs">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5 text-muted">
+                    {% if website.last_scan %}
+                        {{ website.last_scan.get_status_display }} · {{ website.last_scan.created_at|date:"M j" }}
+                    {% else %}
+                        Never scanned
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5 text-right">
+                    <a href="{% url 'websites:detail' website.pk %}" class="text-primary font-semibold hover:underline">View</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-4 py-10 text-center">
+                {% if selected_type or selected_status %}
+                <p class="empty-state-title">No websites match these filters</p>
+                <p class="empty-state-subtitle" style="margin-bottom:0;">Try clearing them.</p>
+                {% else %}
+                <p class="empty-state-title">No websites yet</p>
+                <p class="empty-state-subtitle" style="margin-bottom:0;">Add one to start tracking it.</p>
+                {% endif %}
+            </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

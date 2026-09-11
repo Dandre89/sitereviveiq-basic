@@ -1,0 +1,172 @@
+<html>
+<head>
+<style>
+    @page {
+        size: A4;
+        margin: 2.2cm 2cm;
+    }
+    body {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 10pt;
+        color: #12213A;
+        line-height: 1.5;
+    }
+    h1 {
+        font-size: 20pt;
+        color: #12213A;
+        margin-bottom: 4pt;
+    }
+    .meta {
+        font-size: 9pt;
+        color: #5F6B80;
+        margin-bottom: 22pt;
+    }
+    h2 {
+        font-size: 12pt;
+        color: #185FA5;
+        margin-top: 16pt;
+        margin-bottom: 6pt;
+        padding-bottom: 4pt;
+        border-bottom: 1px solid #185FA5;
+    }
+    h3 {
+        font-size: 10pt;
+        margin: 0 0 2pt 0;
+    }
+    p {
+        margin: 0 0 8pt 0;
+    }
+    .item {
+        margin-bottom: 8pt;
+        padding-bottom: 8pt;
+        border-bottom: 0.5pt solid #E3E7EE;
+    }
+    .item-meta {
+        font-size: 8.5pt;
+        color: #5F6B80;
+    }
+    .scorebox {
+        display: inline-block;
+        width: 30%;
+        margin-right: 3%;
+        margin-bottom: 12pt;
+    }
+    .scorebox .label {
+        font-size: 8pt;
+        color: #5F6B80;
+        text-transform: uppercase;
+    }
+    .scorebox .value {
+        font-size: 20pt;
+        font-weight: bold;
+    }
+    .footer {
+        margin-top: 26pt;
+        font-size: 8pt;
+        color: #5F6B80;
+    }
+</style>
+</head>
+<body>
+    <h1>{{ report.title }}</h1>
+    <div class="meta">Prepared for {{ report.website.name }} &middot; {{ report.generated_at|date:"F j, Y" }}</div>
+
+    {% if report.report_type == "prospect_audit" %}
+        <p>{{ report.content.executive_summary }}</p>
+
+        <div class="scorebox">
+            <div class="label">Overall score</div>
+            <div class="value">{{ report.content.health_overview.overall_score|default:"N/A" }}</div>
+        </div>
+        <div class="scorebox">
+            <div class="label">Competitive analysis</div>
+            <div class="value" style="font-size:9pt; font-weight:normal;">{{ report.content.competitive_weaknesses.note }}</div>
+        </div>
+
+        <h2>Top opportunities</h2>
+        {% for issue in report.content.top_opportunities %}
+        <div class="item">
+            <h3>{{ issue.title }}</h3>
+            <p>{{ issue.recommendation }}</p>
+            <div class="item-meta">{{ issue.affected_scope }}</div>
+        </div>
+        {% empty %}<p>No open opportunities found.</p>{% endfor %}
+
+        {% if report.content.next_step %}
+        <h2>Next step</h2>
+        <p>{{ report.content.next_step }}</p>
+        {% endif %}
+
+    {% elif report.report_type == "client_health" %}
+        <p>{{ report.content.trend_summary }}</p>
+
+        <div class="scorebox">
+            <div class="label">Current score</div>
+            <div class="value">{{ report.content.current_health.overall_score|default:"N/A" }}</div>
+        </div>
+        <div class="scorebox">
+            <div class="label">Score change</div>
+            <div class="value">{{ report.content.changes_since_prior_scan.overall_score_delta|default:"0" }}</div>
+        </div>
+
+        <h2>New problems ({{ report.content.new_problems|length }})</h2>
+        {% for issue in report.content.new_problems %}<div class="item"><h3>{{ issue.title }}</h3></div>{% empty %}<p>None.</p>{% endfor %}
+
+        <h2>Resolved ({{ report.content.resolved_problems|length }})</h2>
+        {% for issue in report.content.resolved_problems %}<div class="item"><h3>{{ issue.title }}</h3></div>{% empty %}<p>None.</p>{% endfor %}
+
+        <h2>Returned ({{ report.content.returned_problems|length }})</h2>
+        {% for issue in report.content.returned_problems %}<div class="item"><h3>{{ issue.title }}</h3></div>{% empty %}<p>None.</p>{% endfor %}
+
+        <h2>Recommendations</h2>
+        {% for issue in report.content.recommendations %}
+        <div class="item">
+            <h3>{{ issue.title }}</h3>
+            <p>{{ issue.recommendation }}</p>
+        </div>
+        {% empty %}<p>Nothing open right now.</p>{% endfor %}
+
+    {% elif report.report_type == "renovation_results" %}
+        <div class="scorebox">
+            <div class="label">Before</div>
+            <div class="value">{{ report.content.before_and_after_scores.before|default:"N/A" }}</div>
+        </div>
+        <div class="scorebox">
+            <div class="label">After</div>
+            <div class="value">{{ report.content.before_and_after_scores.after|default:"N/A" }}</div>
+        </div>
+        <div class="scorebox">
+            <div class="label">Change</div>
+            <div class="value">{{ report.content.before_and_after_scores.delta|default:"0" }}</div>
+        </div>
+
+        <h2>Resolved findings</h2>
+        {% for issue in report.content.resolved_findings %}
+        <div class="item">
+            <h3>{{ issue.title }}</h3>
+            <div class="item-meta">{{ issue.affected_scope }}</div>
+        </div>
+        {% empty %}<p>Nothing resolved in this comparison.</p>{% endfor %}
+
+        <h2>Remaining opportunities</h2>
+        {% for issue in report.content.remaining_opportunities %}
+        <div class="item">
+            <h3>{{ issue.title }}</h3>
+            <p>{{ issue.recommendation }}</p>
+        </div>
+        {% empty %}<p>All clear.</p>{% endfor %}
+
+        <h2>Evidence</h2>
+        <p>{{ report.content.evidence.note }}</p>
+
+        {% if report.content.next_phase %}
+        <h2>Next phase</h2>
+        <p>{{ report.content.next_phase.title }}</p>
+        {% endif %}
+    {% endif %}
+
+    {% if report.website.workspace.show_powered_by %}
+    <div class="footer">Prepared with SiteRevive IQ</div>
+    {% endif %}
+</body>
+</html>
