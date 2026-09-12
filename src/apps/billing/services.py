@@ -187,15 +187,26 @@ def _apply_stripe_subscription(subscription: Subscription, stripe_sub) -> None:
     subscription.status = stripe_sub.status
     subscription.cancel_at_period_end = bool(getattr(stripe_sub, "cancel_at_period_end", False))
 
-    period_end = getattr(stripe_sub, "current_period_end", None)
-    subscription.current_period_end = (
-        dt.datetime.fromtimestamp(period_end, tz=dt.timezone.utc) if period_end else None
-    )
-
     items = getattr(stripe_sub, "items", None)
     items_data = getattr(items, "data", None) or []
     if items_data:
         subscription.stripe_price_id = items_data[0].price.id
+
+    # As of Stripe's 2025-03-31 "Basil" API version, current_period_end
+    # (and current_period_start) were removed from the top-level
+    # Subscription object and now live on each subscription item instead —
+    # see https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.
+    # stripe-python v15 defaults to a post-Basil API version, so the old
+    # top-level field is always absent here; pull it from the first item
+    # (every subscription in this app has exactly one), falling back to
+    # the legacy top-level attribute in case an older-shaped object is
+    # ever passed in.
+    period_end = (
+        getattr(items_data[0], "current_period_end", None) if items_data else None
+    ) or getattr(stripe_sub, "current_period_end", None)
+    subscription.current_period_end = (
+        dt.datetime.fromtimestamp(period_end, tz=dt.timezone.utc) if period_end else None
+    )
 
     customer = getattr(stripe_sub, "customer", None)
     if customer:
