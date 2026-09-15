@@ -7,10 +7,32 @@ from django.utils.text import slugify
 
 
 class Workspace(models.Model):
+    class LifecycleStatus(models.TextChoices):
+        ACTIVE = "active", "Active"
+        OWNER_DELETED = "owner_deleted", "Deleted by owner (pending permanent removal)"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
     is_active = models.BooleanField(default=True)
+
+    # Self-serve account deletion. Soft "pending" flag only — the workspace
+    # and all its data stay fully intact and queryable until a staff member
+    # performs the separate, irreversible permanent-purge action in the
+    # admin console. Nothing in the app itself reads this field to gate
+    # access; access cuts off naturally once the Stripe subscription
+    # actually lapses (see billing.middleware).
+    lifecycle_status = models.CharField(
+        max_length=20, choices=LifecycleStatus.choices, default=LifecycleStatus.ACTIVE
+    )
+    deletion_requested_at = models.DateTimeField(null=True, blank=True)
+    deletion_requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
 
     # Notification preferences — gates apps.monitoring.notifications, which
     # already does the real work (creates Notification rows, sends real
@@ -119,6 +141,7 @@ class AuditLogEntry(models.Model):
         ROLE_CHANGED = "role_changed", "Role changed"
         MEMBER_REMOVED = "member_removed", "Member removed"
         WORKSPACE_UPDATED = "workspace_updated", "Workspace settings updated"
+        DELETION_REQUESTED = "deletion_requested", "Account deletion requested by owner"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="audit_log_entries")
