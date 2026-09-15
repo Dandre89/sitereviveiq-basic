@@ -70,6 +70,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name='credittransaction',
-            index=models.Index(fields=['workspace', '-created_at'], name='billing_credittx_ws_created_idx'),
+            index=models.Index(fields=['workspace', '-created_at'], name='credittx_ws_created_idx'),
         ),
     ]

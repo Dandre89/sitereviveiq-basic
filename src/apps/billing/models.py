@@ -185,7 +185,9 @@ class CreditTransaction(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["workspace", "-created_at"], name="billing_credittx_ws_created_idx"),
+            # Name kept under Postgres/Django's 30-char index-name limit
+            # (models.E034) — "billing_credittx_ws_created_idx" was 31.
+            models.Index(fields=["workspace", "-created_at"], name="credittx_ws_created_idx"),
         ]
 
     def __str__(self):
