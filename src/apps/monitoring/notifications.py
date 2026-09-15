@@ -43,6 +43,38 @@ def _create(website, notification_type, title, message, recipient=None, scan=Non
     return notification
 
 
+def notify_monitoring_paused_no_credits(website) -> Notification | None:
+    """
+    Called from apps.monitoring.tasks.check_scheduled_scans when a
+    website is due for its scheduled rescan but the workspace is out of
+    scan credits — the scan is skipped for this cycle rather than
+    queued, so the owner needs to actually see this (no scan row exists
+    to hang a "scan completed" notification off of). This build is
+    single-user (see WorkspaceMembership usage elsewhere), so there's
+    always exactly one owner to notify, but this still goes through the
+    same owner lookup as Enterprise/Pro rather than assuming
+    request.user, since there's no request here at all.
+    """
+    from apps.workspaces.models import WorkspaceMembership
+
+    owners = WorkspaceMembership.objects.filter(
+        workspace=website.workspace, role=WorkspaceMembership.Role.OWNER
+    ).select_related("user")
+
+    created = None
+    for membership in owners:
+        created = _create(
+            website,
+            Notification.NotificationType.CREDITS_EXHAUSTED,
+            f"Monitoring paused for {website.name}",
+            f"{website.name} was due for its scheduled scan, but this workspace is out of "
+            "scan credits for this cycle. Buy more credits to resume monitoring, or wait "
+            "for the next reset.",
+            recipient=membership.user,
+        )
+    return created
+
+
 def notify_scan_completed(scan, recipient=None) -> Notification | None:
     if not scan.website.workspace.notify_scan_completed:
         return None

@@ -23,6 +23,9 @@ class Notification(WorkspaceScopedModel):
         NEW_OPPORTUNITY = "new_opportunity", "New opportunity"
         RETURNING_ISSUE = "returning_issue", "Returning issue"
         PROPOSAL_RESPONSE = "proposal_response", "Proposal response"
+        # No migration needed — adding a TextChoices value only changes
+        # Python-level validation, not the underlying CharField column.
+        CREDITS_EXHAUSTED = "credits_exhausted", "Monitoring paused — out of credits"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     website = models.ForeignKey("websites.Website", on_delete=models.CASCADE, related_name="notifications")
@@ -62,4 +65,8 @@ BASIC_NOTIFICATION_TYPES = [
     (Notification.NotificationType.SCORE_DROP, "Significant score drop"),
     (Notification.NotificationType.NEW_OPPORTUNITY, "New opportunity"),
     (Notification.NotificationType.RETURNING_ISSUE, "Returning issue"),
+    # Unlike PROPOSAL_RESPONSE, this one absolutely can happen here —
+    # Basic still has scheduled monitoring (None/Monthly), which is what
+    # triggers this notification when a workspace runs out of credits.
+    (Notification.NotificationType.CREDITS_EXHAUSTED, "Monitoring paused — out of credits"),
 ]

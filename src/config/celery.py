@@ -13,4 +13,8 @@ app.conf.beat_schedule = {
         "task": "apps.monitoring.tasks.check_scheduled_scans",
         "schedule": 3600.0,  # every hour, on the hour is not required — just every 3600s
     },
+    "reset-due-credit-cycles-daily": {
+        "task": "apps.billing.tasks.reset_due_credit_cycles",
+        "schedule": 86400.0,  # once a day — cycle_resets_at is a datetime, not tied to a specific hour
+    },
 }

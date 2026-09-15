@@ -17,6 +17,8 @@ FREQUENCY_INTERVALS = {
 
 @shared_task
 def check_scheduled_scans() -> int:
+    from apps.billing.credits import InsufficientCreditsError
+    from apps.monitoring.notifications import notify_monitoring_paused_no_credits
     from apps.scans.models import Scan
     from apps.scans.services import DuplicateActiveScanError, start_scan
     from apps.scans.tasks import run_scan_task
@@ -42,6 +44,12 @@ def check_scheduled_scans() -> int:
         try:
             scan = start_scan(website, requested_by=None, trigger=Scan.Trigger.SCHEDULED)
         except DuplicateActiveScanError:
+            continue
+        except InsufficientCreditsError:
+            # Skip this cycle rather than queue a scan with no credit
+            # behind it — the owner needs to actually see this, since
+            # there's no scan row to notify about otherwise.
+            notify_monitoring_paused_no_credits(website)
             continue
 
         task = run_scan_task.delay(str(scan.id))

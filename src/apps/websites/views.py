@@ -312,11 +312,19 @@ def website_run_scan(request, pk):
         messages.error(request, "Archived websites cannot be scanned.")
         return redirect("websites:detail", pk=website.pk)
 
+    from apps.billing.credits import InsufficientCreditsError
+
     try:
         scan = start_scan(website, requested_by=request.user, trigger=Scan.Trigger.MANUAL)
     except DuplicateActiveScanError:
         messages.error(request, "This website already has a scan in progress.")
         return redirect("websites:detail", pk=website.pk)
+    except InsufficientCreditsError:
+        messages.error(
+            request,
+            "You're out of scan credits for this cycle. Buy more credits or wait for the next reset.",
+        )
+        return redirect("core:settings")
 
     task = run_scan_task.delay(str(scan.id))
     scan.celery_task_id = task.id

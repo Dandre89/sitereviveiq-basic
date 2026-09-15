@@ -25,6 +25,9 @@
                 </div>
                 <button type="submit" class="btn-primary w-full py-2.5 text-sm">Log in</button>
             </form>
+            <p class="text-center text-xs text-muted mt-3">
+                <a href="{% url 'accounts:password_reset' %}">Forgot your password?</a>
+            </p>
         </div>
         <p class="text-center text-xs text-muted mt-5">New here? <a href="{% url 'billing:pricing' %}" class="hover:text-primary underline">See pricing and sign up</a>.</p>
     </div>

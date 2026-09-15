@@ -1,11 +1,18 @@
+import json
+import secrets
+
+from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth import get_user_model, login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
 from django.db import transaction
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.text import slugify
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 from apps.billing import services as billing_services
 from apps.billing.models import Subscription
@@ -131,3 +138,57 @@ def change_password(request):
             for error in field_errors:
                 messages.error(request, error)
     return redirect("core:settings")
+
+
+# --- Internal admin console integration ---
+#
+# The internal admin console (a separate project — see its own README)
+# needs to be able to trigger the exact same password-reset email flow
+# a customer would trigger themselves at accounts:password_reset,
+# rather than the console minting its own token or setting a password
+# directly. Routing it through PasswordResetForm here means both paths
+# share one implementation of "how a reset link gets made and sent" —
+# there's no second, differently-secured way to end up with a valid
+# reset link for someone's account.
+#
+# Auth is a single shared bearer token (INTERNAL_API_TOKEN), not a user
+# session — this is a server-to-server call from the console's backend,
+# never from a browser, hence @csrf_exempt. secrets.compare_digest
+# avoids a timing side-channel on the comparison.
+
+@csrf_exempt
+@require_POST
+def internal_trigger_password_reset(request):
+    if not settings.INTERNAL_API_TOKEN:
+        return HttpResponseForbidden("Internal API not configured.")
+
+    auth_header = request.headers.get("Authorization", "")
+    provided = auth_header.removeprefix("Bearer ").strip()
+    if not provided or not secrets.compare_digest(provided, settings.INTERNAL_API_TOKEN):
+        return HttpResponseForbidden("Invalid or missing token.")
+
+    try:
+        payload = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+
+    email = (payload.get("email") or "").strip().lower()
+    if not email:
+        return JsonResponse({"error": "email is required."}, status=400)
+
+    UserModel = get_user_model()
+    user_exists = UserModel.objects.filter(email=email, is_active=True).exists()
+
+    if user_exists:
+        form = PasswordResetForm(data={"email": email})
+        if form.is_valid():
+            form.save(
+                email_template_name="registration/password_reset_email.html",
+                subject_template_name="registration/password_reset_subject.txt",
+            )
+
+    # Always returns the same shape whether or not the account exists —
+    # matches the self-service form's own "check your email" behavior,
+    # so this endpoint can't be used to enumerate which emails have
+    # accounts on this tier.
+    return JsonResponse({"status": "ok"})

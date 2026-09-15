@@ -212,6 +212,48 @@
     {% else %}
     <p class="text-sm text-muted">Billing isn't set up for this workspace yet.</p>
     {% endif %}
+
+    {% if subscription and subscription.is_migrated_to_pro %}
+    <div class="settings-row mt-4" style="border-top: 1px solid var(--color-border-soft); padding-top: 16px;">
+        <div>
+            <p class="settings-row-label">You've moved to Pro <span class="pill pill-good" style="margin-left:6px;">Upgraded</span></p>
+            <p class="settings-row-desc">This workspace was migrated — log in to Pro with the same email and password.</p>
+        </div>
+        <a href="{{ pro_app_login_url }}" class="btn-ghost px-4 py-2.5 text-sm">Log in to Pro</a>
+    </div>
+    {% elif is_workspace_owner %}
+    <div class="settings-row mt-4" style="border-top: 1px solid var(--color-border-soft); padding-top: 16px;">
+        <div>
+            <p class="settings-row-label">Need more than one website?</p>
+            <p class="settings-row-desc">Upgrade to Pro — everything here moves over automatically, same login.</p>
+        </div>
+        <a href="{% url 'billing:upgrade_to_pro' %}" class="btn-primary px-4 py-2.5 text-sm">Upgrade to Pro</a>
+    </div>
+    {% endif %}
+
+    {% if credit_balance and not subscription.is_migrated_to_pro %}
+    <div class="settings-row mt-4" style="border-top: 1px solid var(--color-border-soft); padding-top: 16px;">
+        <div>
+            <p class="settings-row-label">
+                Scan credits
+                <span class="pill {% if credit_balance.balance <= 0 %}pill-danger{% elif credit_balance.is_low %}pill-warn{% else %}pill-good{% endif %}" style="margin-left:6px;">
+                    {{ credit_balance.balance }} of {{ credit_balance.cycle_allotment }}
+                </span>
+            </p>
+            <p class="settings-row-desc">
+                Every scan — manual or scheduled — uses 1 credit.
+                {% if credit_balance.cycle_resets_at %}Resets {{ credit_balance.cycle_resets_at|date:"M j, Y" }}.{% endif %}
+            </p>
+            <div style="background: var(--color-border-soft); border-radius: 4px; height: 6px; margin-top: 10px; overflow: hidden; max-width: 320px;">
+                <div style="background: {% if credit_balance.balance <= 0 %}var(--color-danger, #d33){% else %}var(--color-primary, #3B82F6){% endif %}; height: 100%; width: {% widthratio credit_balance.balance credit_balance.cycle_allotment 100 %}%;"></div>
+            </div>
+        </div>
+        <form method="post" action="{% url 'billing:buy_credits' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-ghost px-4 py-2.5 text-sm" style="white-space:nowrap;">Buy 10 credits — $25</button>
+        </form>
+    </div>
+    {% endif %}
 </div>
 
 <div id="tour-settings-notifications" class="card p-6 max-w-3xl">

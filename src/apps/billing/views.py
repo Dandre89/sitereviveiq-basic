@@ -13,7 +13,7 @@ from django.conf import settings
 
 from apps.workspaces.models import WorkspaceMembership
 
-from . import services
+from . import services, upgrade
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +73,23 @@ def checkout_success(request):
         messages.error(request, "Couldn't confirm your payment — if you were charged, contact us.")
         return redirect("core:dashboard" if request.user.is_authenticated else "accounts:login")
 
+    if upgrade.is_upgrade_session(session):
+        # Basic -> Pro upgrade, not a normal signup — see apps.billing.upgrade
+        # for the full migration this triggers. Same synchronous-path/webhook
+        # dual-safety pattern as the normal signup flow below: whichever
+        # fires first does the work, idempotently.
+        try:
+            upgrade.complete_upgrade_from_checkout_session(session)
+        except Exception:
+            logger.exception("Upgrade completion failed for Checkout Session %s", session_id)
+            messages.error(
+                request,
+                "Payment went through, but we hit an issue finishing your upgrade. "
+                "We've been notified and will follow up shortly — no need to try again.",
+            )
+            return redirect("core:dashboard" if request.user.is_authenticated else "accounts:login")
+        return render(request, "billing/upgrade_success.html", {"pro_login_url": settings.PRO_APP_LOGIN_URL})
+
     subscription = services.link_subscription_from_checkout_session(session)
     if subscription is not None and subscription.has_access:
         messages.success(request, "You're all set — welcome to SiteRevive IQ.")
@@ -126,6 +143,119 @@ def retry_checkout(request):
         messages.error(request, f"Couldn't start checkout: {exc}")
         return redirect("core:settings")
     return redirect(checkout_url)
+
+
+@login_required
+def upgrade_to_pro(request):
+    """
+    Settings -> "Upgrade to Pro". GET shows a confirmation page (what
+    moves over, what doesn't, and that this is one-way); POST creates a
+    real Stripe Checkout Session for a Pro subscription and sends the
+    owner there. See apps.billing.upgrade for the full migration this
+    triggers on success, and why it can live entirely in this codebase.
+    """
+    if not _is_workspace_owner(request):
+        messages.error(request, "Only a workspace owner can upgrade this workspace.")
+        return redirect("core:settings")
+
+    workspace = request.workspace
+    subscription = getattr(workspace, "subscription", None)
+
+    if subscription is not None and subscription.is_migrated_to_pro:
+        messages.info(request, "This workspace has already been upgraded to Pro.")
+        return redirect("core:settings")
+
+    if request.method == "POST":
+        interval = request.POST.get("interval") or (
+            subscription.intended_interval if subscription else ""
+        ) or "monthly"
+        if interval not in ("monthly", "annual"):
+            interval = "monthly"
+
+        try:
+            upgrade.check_upgrade_eligibility(workspace)
+        except upgrade.UpgradeError as exc:
+            messages.error(request, str(exc))
+            return redirect("core:settings")
+
+        success_url = (
+            request.build_absolute_uri(reverse("billing:checkout_success"))
+            + "?session_id={CHECKOUT_SESSION_ID}"
+        )
+        cancel_url = request.build_absolute_uri(reverse("billing:upgrade_to_pro"))
+
+        try:
+            checkout_url = upgrade.create_upgrade_checkout_session(
+                workspace=workspace, user=request.user, interval=interval,
+                success_url=success_url, cancel_url=cancel_url,
+            )
+        except (services.StripeNotConfiguredError, upgrade.UnknownProPriceError) as exc:
+            messages.error(request, f"Couldn't start the upgrade: {exc}")
+            return redirect("core:settings")
+        return redirect(checkout_url)
+
+    interval = (subscription.intended_interval if subscription else "") or "monthly"
+    return render(request, "billing/upgrade.html", {"interval": interval})
+
+
+@login_required
+@require_POST
+def buy_credits(request):
+    """
+    Any workspace member can top up (not owner-gated like the
+    subscription controls above) — running out of scan credits blocks
+    everyone's work, not just billing admin, and this is a one-time
+    purchase against CreditBalance rather than a change to the
+    workspace's subscription itself.
+    """
+    if request.workspace is None:
+        messages.error(request, "No workspace selected.")
+        return redirect("core:settings")
+
+    success_url = request.build_absolute_uri(reverse("billing:topup_success")) + "?session_id={CHECKOUT_SESSION_ID}"
+    cancel_url = request.build_absolute_uri(reverse("core:settings"))
+    try:
+        checkout_url = services.create_topup_checkout_session(
+            workspace=request.workspace, user=request.user,
+            success_url=success_url, cancel_url=cancel_url,
+        )
+    except (services.StripeNotConfiguredError, services.UnknownPriceError) as exc:
+        messages.error(request, f"Couldn't start checkout: {exc}")
+        return redirect("core:settings")
+    return redirect(checkout_url)
+
+
+def topup_success(request):
+    """
+    Stripe redirects here after a successful top-up Checkout. Same
+    synchronous-linking pattern as checkout_success above — grants the
+    credits immediately rather than making the customer wait on webhook
+    delivery, via link_credits_from_checkout_session (safe to also run
+    again from the webhook).
+    """
+    session_id = request.GET.get("session_id")
+    if not session_id:
+        messages.error(request, "Missing checkout session — if you were charged, check Settings.")
+        return redirect("core:dashboard" if request.user.is_authenticated else "accounts:login")
+
+    try:
+        client = services.build_client()
+    except services.StripeNotConfiguredError:
+        messages.error(request, "Billing isn't configured in this environment yet.")
+        return redirect("core:dashboard" if request.user.is_authenticated else "accounts:login")
+
+    try:
+        session = client.v1.checkout.sessions.retrieve(session_id)
+    except stripe.error.StripeError:
+        logger.exception("Couldn't retrieve top-up Checkout Session %s on success redirect", session_id)
+        messages.error(request, "Couldn't confirm your payment — if you were charged, contact us.")
+        return redirect("core:dashboard" if request.user.is_authenticated else "accounts:login")
+
+    if services.link_credits_from_checkout_session(session):
+        messages.success(request, f"Added {settings.CREDIT_TOPUP_QUANTITY} scan credits to your workspace.")
+    else:
+        messages.info(request, "Payment received — finishing adding your credits, this can take a few seconds.")
+    return redirect("core:settings" if request.user.is_authenticated else "accounts:login")
 
 
 @login_required

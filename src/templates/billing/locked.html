@@ -7,7 +7,10 @@
             <i data-lucide="lock" style="width:20px;height:20px"></i>
         </div>
 
-        {% if subscription and subscription.status == "past_due" %}
+        {% if subscription and subscription.is_migrated_to_pro %}
+        <p class="empty-state-title">You've moved to Pro</p>
+        <p class="empty-state-subtitle">This workspace was upgraded to Pro — everything's over there now, including this login and password.</p>
+        {% elif subscription and subscription.status == "past_due" %}
         <p class="empty-state-title">Your last payment didn't go through</p>
         <p class="empty-state-subtitle">Update your payment method to restore access to {{ request.workspace.name }}.</p>
         {% elif subscription and subscription.status == "unpaid" %}
@@ -27,7 +30,9 @@
         <p class="empty-state-subtitle">Contact SiteRevive IQ to get {{ request.workspace.name }} linked to a subscription.</p>
         {% endif %}
 
-        {% if subscription and subscription.is_linked %}
+        {% if subscription and subscription.is_migrated_to_pro %}
+        <a href="{{ pro_app_login_url }}" class="btn-primary px-5 py-2.5 text-sm inline-block mt-6">Log in to Pro</a>
+        {% elif subscription and subscription.is_linked %}
         <form method="post" action="{% url 'billing:portal' %}" class="mt-6">
             {% csrf_token %}
             <button type="submit" class="btn-primary px-5 py-2.5 text-sm">Manage billing</button>

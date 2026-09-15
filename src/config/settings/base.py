@@ -91,7 +91,17 @@ DATABASES = {
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         "CONN_MAX_AGE": 60,
         "OPTIONS": (
-            {"options": f"-c search_path={POSTGRES_SCHEMA},public"}
+            # Deliberately NOT "{schema},public" -- Postgres resolves
+            # references to already-existing tables by walking the whole
+            # search_path, not just the first entry. Since this Postgres
+            # instance is shared with other SiteRevive IQ tiers that migrated
+            # directly into "public" (no schema isolation), including
+            # "public" here would make ALTER TABLE statements against
+            # same-named tables silently target the wrong tier's tables
+            # once this tier's own schema has no matching table yet. Keeping
+            # the search_path to just this tier's schema forces every
+            # migration to create genuinely fresh, isolated tables.
+            {"options": f"-c search_path={POSTGRES_SCHEMA}"}
             if POSTGRES_SCHEMA
             else {}
         ),
@@ -177,6 +187,13 @@ SCORE_DROP_NOTIFICATION_THRESHOLD = int(os.environ.get("SCORE_DROP_NOTIFICATION_
 # enforcement on for real — see apps/billing/services.py and
 # apps/billing/views.py::stripe_webhook for what each one is used for.
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+
+# Shared secret checked by apps.accounts.views.internal_trigger_password_reset
+# — lets the separate internal admin console trigger this app's own
+# password-reset email flow for a given user, server-to-server. Blank
+# by default, which makes that endpoint refuse every request (see
+# HttpResponseForbidden there) until this is explicitly set.
+INTERNAL_API_TOKEN = os.environ.get("INTERNAL_API_TOKEN", "")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
@@ -189,3 +206,32 @@ STRIPE_PRICE_IDS = {
     "monthly": os.environ.get("STRIPE_PRICE_BASIC_MONTHLY", ""),
     "annual": os.environ.get("STRIPE_PRICE_BASIC_ANNUAL", ""),
 }
+
+# --- Basic -> Pro upgrade (apps.billing.upgrade) ---
+# Same Stripe account as everything else here (test mode), but these are
+# the standalone Pro app's own Price IDs, not Basic's — an upgrade sends
+# the customer through a real Pro Checkout Session. Get these from the
+# Pro Render service's own env vars (STRIPE_PRICE_PRO_MONTHLY /
+# STRIPE_PRICE_PRO_ANNUAL there) or the Stripe Dashboard.
+STRIPE_PRICE_IDS_PRO = {
+    "monthly": os.environ.get("STRIPE_PRICE_PRO_MONTHLY", ""),
+    "annual": os.environ.get("STRIPE_PRICE_PRO_ANNUAL", ""),
+}
+
+# Where the "Welcome to Pro" post-upgrade page sends the customer to log
+# in — a different Render service/domain from this one, so there's no
+# way to carry their session over automatically. Their password hash is
+# copied byte-for-byte during the migration, so their existing Basic
+# password works immediately on Pro.
+PRO_APP_LOGIN_URL = os.environ.get("PRO_APP_LOGIN_URL", "https://sitereviveiq-pro.onrender.com/accounts/login/")
+
+# Scan-credit top-up (self-serve, one-time purchase — mode="payment", not
+# a subscription). One shared price across every self-serve tier per
+# Credit_System_Design.md's confirmed decision ("a shared price is fine
+# ... keeps things fair across-the-board, especially if a user upgrades
+# from basic to pro"): 10 credits for $25 — the exact same Stripe Price
+# ID this codebase and Pro's both point at (same Stripe account, same
+# as STRIPE_PRICE_IDS_PRO above). Enterprise has no equivalent — its
+# top-up path is admin-console-manual only.
+STRIPE_CREDIT_TOPUP_PRICE_ID = os.environ.get("STRIPE_CREDIT_TOPUP_PRICE_ID", "")
+CREDIT_TOPUP_QUANTITY = 10  # credits granted per pack — must match the actual Stripe Price

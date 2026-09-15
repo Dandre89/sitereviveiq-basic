@@ -3,6 +3,8 @@ Bridges scanner.crawler (no DB imports) to Postgres. Every page is
 persisted as soon as it completes — per section 11.1 stage 8 — so a
 mid-scan failure still leaves useful partial data.
 """
+import logging
+
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -13,6 +15,8 @@ from scanner.normalizer import normalize_url
 
 from .models import PageLink, Scan, ScanEvent, ScanPage
 
+logger = logging.getLogger(__name__)
+
 
 class DuplicateActiveScanError(Exception):
     pass
@@ -20,30 +24,63 @@ class DuplicateActiveScanError(Exception):
 
 def start_scan(website: Website, requested_by, trigger: str = Scan.Trigger.MANUAL) -> Scan:
     """
-    Creates a queued Scan row. Must be called inside the view/task
-    boundary that then hands the scan ID to Celery — this function does
-    not touch the network.
+    Creates a queued Scan row and spends one credit for it — every scan
+    of any kind (manual or scheduled monitoring) goes through this one
+    function, which is what makes it the right place to enforce credits
+    rather than duplicating the check at each call site. See
+    apps.billing.credits for the accounting itself.
+
+    The Scan row and the credit spend happen in one transaction: if the
+    workspace is out of credits, InsufficientCreditsError rolls back the
+    Scan creation too, so there's never an orphan QUEUED scan with no
+    credit behind it. Must be called inside the view/task boundary that
+    then hands the scan ID to Celery — this function does not touch the
+    network.
     """
     if website.has_active_scan():
         raise DuplicateActiveScanError(
             f"Website {website.id} already has an active scan"
         )
 
-    return Scan.objects.create(
-        workspace=website.workspace,
-        website=website,
-        status=Scan.Status.QUEUED,
-        trigger=trigger,
-        max_pages=website.max_pages,
-        max_depth=website.max_depth,
-        requested_by=requested_by,
-    )
+    from apps.billing.credits import spend_credit
+
+    with transaction.atomic():
+        scan = Scan.objects.create(
+            workspace=website.workspace,
+            website=website,
+            status=Scan.Status.QUEUED,
+            trigger=trigger,
+            max_pages=website.max_pages,
+            max_depth=website.max_depth,
+            requested_by=requested_by,
+        )
+        spend_credit(website.workspace, scan=scan)
+
+    return scan
 
 
 def _log_event(scan: Scan, level: str, event_type: str, message: str, data: dict | None = None):
     ScanEvent.objects.create(
         scan=scan, level=level, event_type=event_type, message=message, event_data=data or {}
     )
+
+
+def _refund_credit_safely(scan: Scan) -> None:
+    """
+    A scan that FAILED already spent its credit in start_scan — this is
+    the customer's money back for a failure that wasn't their fault (see
+    apps.billing.credits.refund_credit's docstring for which failures
+    qualify — currently both FAILED paths in execute_scan). Runs inside
+    the Celery worker, well after the scan's own transaction has
+    committed, so a refund problem must never take the worker down or
+    mask the actual scan failure — logged loudly instead.
+    """
+    from apps.billing.credits import refund_credit
+
+    try:
+        refund_credit(scan)
+    except Exception:  # noqa: BLE001 — must never crash the worker
+        logger.exception("Credit refund failed for scan %s — needs a manual look.", scan.id)
 
 
 def execute_scan(scan_id) -> None:
@@ -63,6 +100,7 @@ def execute_scan(scan_id) -> None:
         scan.failure_code = "website_archived"
         scan.failure_message = "Website was archived before the scan started."
         scan.save(update_fields=["status", "failure_code", "failure_message"])
+        _refund_credit_safely(scan)
         return
 
     scan.status = Scan.Status.VALIDATING
@@ -161,6 +199,7 @@ def execute_scan(scan_id) -> None:
         scan.completed_at = timezone.now()
         scan.save(update_fields=["status", "failure_code", "failure_message", "completed_at"])
         _log_event(scan, ScanEvent.Level.ERROR, "scan_failed", str(exc)[:2000])
+        _refund_credit_safely(scan)
         return
 
     scan.pages_discovered = summary.pages_discovered

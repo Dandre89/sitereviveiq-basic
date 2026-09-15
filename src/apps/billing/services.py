@@ -145,6 +145,84 @@ def link_subscription_from_checkout_session(session) -> Subscription | None:
     return subscription
 
 
+def create_topup_checkout_session(
+    *, workspace, user, success_url: str, cancel_url: str
+) -> str:
+    """
+    Creates a one-time-payment Checkout Session for a scan-credit top-up
+    pack — mode="payment", not "subscription", since this isn't a
+    recurring charge. Uses the one shared STRIPE_CREDIT_TOPUP_PRICE_ID
+    (same Price ID this codebase and Pro's both point at) rather than
+    get_price_id, which is subscription-only.
+
+    workspace_id goes on client_reference_id (read by
+    link_credits_from_checkout_session, same pattern as
+    create_signup_checkout_session above) rather than on a Subscription
+    row — a credit top-up isn't tied to the subscription lifecycle at
+    all, it's a standalone purchase against CreditBalance.
+    """
+    if not settings.STRIPE_CREDIT_TOPUP_PRICE_ID:
+        raise UnknownPriceError("STRIPE_CREDIT_TOPUP_PRICE_ID isn't configured in this environment.")
+    client = build_client()
+
+    session = client.v1.checkout.sessions.create({
+        "mode": "payment",
+        "customer_email": user.email,
+        "client_reference_id": str(workspace.id),
+        "line_items": [{"price": settings.STRIPE_CREDIT_TOPUP_PRICE_ID, "quantity": 1}],
+        "payment_intent_data": {"metadata": {"workspace_id": str(workspace.id), "kind": "credit_topup"}},
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "managed_payments": {"enabled": False},
+    })
+    return session.url
+
+
+def link_credits_from_checkout_session(session) -> bool:
+    """
+    Idempotent counterpart to link_subscription_from_checkout_session,
+    for a completed one-time top-up purchase rather than a subscription.
+    Called from both the synchronous success view and the
+    checkout.session.completed webhook (see handle_webhook_event's mode
+    check) — safe to run twice for the same session because
+    CreditTransaction.stripe_payment_intent_id is checked first and the
+    second call is a no-op. Returns True if credits were (or already
+    had been) granted, False if this session isn't a topup at all.
+    """
+    from apps.billing.credits import add_credits
+    from apps.billing.models import CreditTransaction
+
+    if getattr(session, "mode", None) != "payment":
+        return False
+
+    workspace_id = getattr(session, "client_reference_id", None)
+    if not workspace_id:
+        return False
+
+    payment_intent_id = getattr(session, "payment_intent", None)
+    if payment_intent_id and not isinstance(payment_intent_id, str):
+        payment_intent_id = payment_intent_id.id
+    if not payment_intent_id:
+        return False
+
+    if CreditTransaction.objects.filter(stripe_payment_intent_id=payment_intent_id).exists():
+        return True  # already credited — nothing to do
+
+    from apps.workspaces.models import Workspace
+
+    workspace = Workspace.objects.filter(id=workspace_id).first()
+    if workspace is None:
+        return False
+
+    add_credits(
+        workspace,
+        settings.CREDIT_TOPUP_QUANTITY,
+        reason=CreditTransaction.Reason.TOPUP_PURCHASE,
+        stripe_payment_intent_id=payment_intent_id,
+    )
+    return True
+
+
 def create_billing_portal_session(subscription: Subscription, return_url: str) -> str:
     """
     Returns a one-time URL to Stripe's hosted Billing Portal, where the
@@ -187,15 +265,26 @@ def _apply_stripe_subscription(subscription: Subscription, stripe_sub) -> None:
     subscription.status = stripe_sub.status
     subscription.cancel_at_period_end = bool(getattr(stripe_sub, "cancel_at_period_end", False))
 
-    period_end = getattr(stripe_sub, "current_period_end", None)
-    subscription.current_period_end = (
-        dt.datetime.fromtimestamp(period_end, tz=dt.timezone.utc) if period_end else None
-    )
-
     items = getattr(stripe_sub, "items", None)
     items_data = getattr(items, "data", None) or []
     if items_data:
         subscription.stripe_price_id = items_data[0].price.id
+
+    # As of Stripe's 2025-03-31 "Basil" API version, current_period_end
+    # (and current_period_start) were removed from the top-level
+    # Subscription object and now live on each subscription item instead —
+    # see https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.
+    # stripe-python v15 defaults to a post-Basil API version, so the old
+    # top-level field is always absent here; pull it from the first item
+    # (every subscription in this app has exactly one), falling back to
+    # the legacy top-level attribute in case an older-shaped object is
+    # ever passed in.
+    period_end = (
+        getattr(items_data[0], "current_period_end", None) if items_data else None
+    ) or getattr(stripe_sub, "current_period_end", None)
+    subscription.current_period_end = (
+        dt.datetime.fromtimestamp(period_end, tz=dt.timezone.utc) if period_end else None
+    )
 
     customer = getattr(stripe_sub, "customer", None)
     if customer:
@@ -216,7 +305,23 @@ def handle_webhook_event(event) -> None:
     data_object = event.data.object
 
     if event_type == "checkout.session.completed":
-        link_subscription_from_checkout_session(data_object)
+        # Three different kinds of Checkout Session complete here: a
+        # credit top-up (mode="payment", checked first since it's a
+        # different mode entirely from the other two), a normal Basic
+        # signup, or an existing customer's Basic -> Pro upgrade
+        # (apps.billing.upgrade) — the latter two distinguished by
+        # session.metadata.upgrade_to_pro, set only by
+        # upgrade.create_upgrade_checkout_session. Import kept local to
+        # dodge a circular import (upgrade.py imports from this module).
+        if getattr(data_object, "mode", None) == "payment":
+            link_credits_from_checkout_session(data_object)
+        else:
+            from . import upgrade
+
+            if upgrade.is_upgrade_session(data_object):
+                upgrade.complete_upgrade_from_checkout_session(data_object)
+            else:
+                link_subscription_from_checkout_session(data_object)
     elif event_type.startswith("customer.subscription."):
         _sync_from_subscription_object(data_object)
     elif event_type in ("invoice.paid", "invoice.payment_failed"):

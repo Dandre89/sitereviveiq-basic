@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Upgrade to Pro — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="flex items-center justify-center" style="min-height: 80vh;">
+    <div class="w-full" style="max-width: 480px;">
+        <div class="text-center mb-7">
+            <p class="eyebrow mb-2">Upgrade</p>
+            <h1 class="text-2xl font-medium tracking-tight mb-2">Move to Pro</h1>
+            <p class="text-sm text-muted">More websites, roadmaps, competitor tracking, and white-label proposals.</p>
+        </div>
+
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-3">$139<span class="text-sm text-muted font-normal">/month</span></h2>
+            <p class="text-sm text-muted mb-5">Same email and password — your account, website, scan history, findings, and reports all move over automatically. This can't be undone from here, so make sure Pro is what you want before continuing.</p>
+
+            <ul class="text-sm mb-5" style="list-style: none; padding: 0;">
+                <li class="mb-2">✓ Everything currently in this workspace carries over</li>
+                <li class="mb-2">✓ Your login works immediately — no new password to set</li>
+                <li class="mb-2">✓ This Basic subscription is canceled automatically once Pro is active</li>
+                <li>✕ One-way — there's no self-serve downgrade back to Basic</li>
+            </ul>
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="interval" value="{{ interval }}">
+                <button type="submit" class="btn-primary w-full py-2.5 text-sm">Continue to payment</button>
+            </form>
+            <a href="{% url 'core:settings' %}" class="block text-center text-xs text-muted hover:text-primary underline mt-4">Never mind, take me back</a>
+        </div>
+
+        <p class="text-center text-xs text-muted mt-6">Payments processed by Stripe. Test mode — no charge is real yet.</p>
+    </div>
+</div>
+{% endblock %}

@@ -46,6 +46,7 @@ class SubscriptionEnforcementMiddleware:
                 "billing/locked.html",
                 {
                     "subscription": getattr(request.workspace, "subscription", None),
+                    "pro_app_login_url": settings.PRO_APP_LOGIN_URL,
                     "hide_chrome": True,
                 },
                 status=402,
@@ -53,8 +54,6 @@ class SubscriptionEnforcementMiddleware:
         return self.get_response(request)
 
     def _should_block(self, request) -> bool:
-        if not settings.STRIPE_SECRET_KEY:
-            return False
         if request.path.startswith(self.EXEMPT_PREFIXES):
             return False
         if not request.user.is_authenticated or request.workspace is None:
@@ -63,6 +62,18 @@ class SubscriptionEnforcementMiddleware:
             return False
 
         subscription = getattr(request.workspace, "subscription", None)
+
+        # Checked before the STRIPE_SECRET_KEY escape hatch below: once a
+        # workspace has been migrated to Pro (see apps.billing.upgrade)
+        # it stays blocked here permanently, in every environment,
+        # regardless of whether Stripe is configured — there's no
+        # scenario where a migrated Basic account should still be usable.
+        if subscription is not None and subscription.is_migrated_to_pro:
+            return True
+
+        if not settings.STRIPE_SECRET_KEY:
+            return False
+
         if subscription is None:
             return True
         return subscription.status not in Subscription.ACCESS_GRANTING_STATUSES

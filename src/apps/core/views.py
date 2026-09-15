@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.shortcuts import render
@@ -57,6 +58,19 @@ def dashboard(request):
 
 
 @login_required
+def _get_credit_balance_for_display(workspace):
+    """
+    Read-only — never call apps.billing.credits.spend_credit or anything
+    that mutates from here. Lazily creates a CreditBalance the first
+    time a workspace is looked at (see get_or_create_balance's own
+    docstring) so an older workspace that predates this feature still
+    shows a real number instead of nothing.
+    """
+    from apps.billing.credits import get_or_create_balance
+
+    return get_or_create_balance(workspace)
+
+
 def settings_view(request):
     is_owner = WorkspaceMembership.objects.filter(
         workspace=request.workspace, user=request.user, role=WorkspaceMembership.Role.OWNER
@@ -69,6 +83,10 @@ def settings_view(request):
             "profile_form": ProfileForm(instance=request.user),
             "is_workspace_owner": is_owner,
             "subscription": getattr(request.workspace, "subscription", None) if request.workspace else None,
+            "pro_app_login_url": settings.PRO_APP_LOGIN_URL,
+            "credit_balance": (
+                _get_credit_balance_for_display(request.workspace) if request.workspace else None
+            ),
         },
     )
 

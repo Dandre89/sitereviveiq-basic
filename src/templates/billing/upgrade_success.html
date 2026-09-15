@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Welcome to Pro — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="client-report-shell">
+    <div class="card p-10 text-center" style="margin-top: 60px; max-width: 480px; margin-left:auto; margin-right:auto;">
+        <div class="icon-chip-sm icon-chip-good" style="width:44px;height:44px;border-radius:12px;margin:0 auto 18px;">
+            <i data-lucide="check" style="width:20px;height:20px"></i>
+        </div>
+        <p class="empty-state-title">You're all set — welcome to Pro</p>
+        <p class="empty-state-subtitle">Everything from this workspace has moved over. Log in with the same email and password — nothing to reset.</p>
+
+        <a href="{{ pro_login_url }}" class="btn-primary px-5 py-2.5 text-sm inline-block mt-6">Log in to Pro</a>
+
+        <p class="text-xs text-muted mt-6">This Basic account is now closed.</p>
+    </div>
+</div>
+{% endblock %}
