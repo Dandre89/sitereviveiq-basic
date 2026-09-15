@@ -57,7 +57,6 @@ def dashboard(request):
     return render(request, "dashboard/index.html", context)
 
 
-@login_required
 def _get_credit_balance_for_display(workspace):
     """
     Read-only — never call apps.billing.credits.spend_credit or anything
@@ -71,6 +70,7 @@ def _get_credit_balance_for_display(workspace):
     return get_or_create_balance(workspace)
 
 
+@login_required
 def settings_view(request):
     is_owner = WorkspaceMembership.objects.filter(
         workspace=request.workspace, user=request.user, role=WorkspaceMembership.Role.OWNER
