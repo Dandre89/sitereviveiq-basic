@@ -15,6 +15,7 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("profile/", views.update_profile, name="update_profile"),
     path("password/", views.change_password, name="change_password"),
+    path("delete/", views.request_account_deletion, name="request_account_deletion"),
     # Self-service "forgot password" flow — added alongside the internal
     # admin console's own password-reset trigger (see
     # views.internal_trigger_password_reset below), both built on the
