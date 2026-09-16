@@ -1448,7 +1448,6 @@ html.drawer-collapsed #main-content { margin-left: var(--sidebar-width-collapsed
    pinned to the actual browser viewport (position: fixed; inset: 0) so
    it floods the full screen edge-to-edge on any size display. Built as
    percentage-anchored radial-gradients rather than fixed-pixel blurred
-   circles - a fixed-size shape either leaves a bare gap in the middle
    circles — a fixed-size shape either leaves a bare gap in the middle
    on a wide screen or overflows badly on a narrow one; gradients sized
    as percentages of the viewport scale correctly either way. Colors
