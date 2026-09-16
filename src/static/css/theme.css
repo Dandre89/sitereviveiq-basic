@@ -1449,6 +1449,7 @@ html.drawer-collapsed #main-content { margin-left: var(--sidebar-width-collapsed
    it floods the full screen edge-to-edge on any size display. Built as
    percentage-anchored radial-gradients rather than fixed-pixel blurred
    circles - a fixed-size shape either leaves a bare gap in the middle
+   circles — a fixed-size shape either leaves a bare gap in the middle
    on a wide screen or overflows badly on a narrow one; gradients sized
    as percentages of the viewport scale correctly either way. Colors
    are hardcoded to the logo gradient (not var(--color-primary)) so
@@ -1463,3 +1464,4 @@ html.drawer-collapsed #main-content { margin-left: var(--sidebar-width-collapsed
     radial-gradient(circle at 8% 8%, rgba(0, 144, 255, 0.34) 0%, rgba(0, 144, 255, 0) 48%),
     radial-gradient(circle at 92% 92%, rgba(0, 201, 232, 0.36) 0%, rgba(0, 201, 232, 0) 48%);
 }
+

@@ -4,6 +4,7 @@ from django.db.models import Count
 from django.shortcuts import render
 
 from apps.accounts.forms import ProfileForm
+from apps.accounts.models import UserNotificationPreference
 from apps.scans.models import Scan
 from apps.websites.models import Website
 from apps.workspaces.access import scope_websites
@@ -82,6 +83,7 @@ def settings_view(request):
         {
             "profile_form": ProfileForm(instance=request.user),
             "is_workspace_owner": is_owner,
+            "my_notification_preference": UserNotificationPreference.get_for_user(request.user),
             "subscription": getattr(request.workspace, "subscription", None) if request.workspace else None,
             "pro_app_login_url": settings.PRO_APP_LOGIN_URL,
             "credit_balance": (

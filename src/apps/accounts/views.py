@@ -20,7 +20,17 @@ from apps.billing.models import Subscription
 from apps.workspaces.models import AuditLogEntry, Workspace, WorkspaceMembership
 
 from .forms import AccountDeletionForm, ProfileForm, SignupForm
-from .models import User
+from .models import User, UserNotificationPreference
+
+NOTIFICATION_PREFERENCE_FIELDS = [
+    "notify_critical_findings",
+    "notify_score_drops",
+    "notify_scan_completed",
+    "notify_new_opportunities",
+    "notify_returning_issues",
+    "notify_credits_exhausted",
+    "notify_proposal_response",
+]
 
 
 def _unique_workspace_slug(name: str) -> str:
@@ -138,6 +148,27 @@ def change_password(request):
         for field_errors in form.errors.values():
             for error in field_errors:
                 messages.error(request, error)
+    return redirect("core:settings")
+
+
+@login_required
+def update_my_notification_preferences(request):
+    """
+    Per-user opt-out for the monitoring-style emails (scan completed,
+    critical finding, credits exhausted, etc.) — separate from, and on
+    top of, the per-workspace toggle every owner controls in
+    apps.workspaces.views.update_notifications. Every checkbox defaults
+    unchecked when *absent* from POST, so an unchecked box correctly
+    turns a category off rather than leaving it untouched.
+    """
+    if request.method != "POST":
+        return redirect("core:settings")
+
+    pref = UserNotificationPreference.get_for_user(request.user)
+    for field_name in NOTIFICATION_PREFERENCE_FIELDS:
+        setattr(pref, field_name, field_name in request.POST)
+    pref.save()
+    messages.success(request, "Your notification preferences were saved.")
     return redirect("core:settings")
 
 
