@@ -7,6 +7,8 @@ deployed) — this module doesn't know or care which.
 from django.conf import settings
 from django.core.mail import send_mail
 
+from apps.accounts.models import UserNotificationPreference
+
 from .models import Notification
 
 CRITICAL_FINDING_SEVERITIES = {"critical"}
@@ -63,6 +65,8 @@ def notify_monitoring_paused_no_credits(website) -> Notification | None:
 
     created = None
     for membership in owners:
+        if not UserNotificationPreference.wants(membership.user, "notify_credits_exhausted"):
+            continue
         created = _create(
             website,
             Notification.NotificationType.CREDITS_EXHAUSTED,
@@ -77,6 +81,8 @@ def notify_monitoring_paused_no_credits(website) -> Notification | None:
 
 def notify_scan_completed(scan, recipient=None) -> Notification | None:
     if not scan.website.workspace.notify_scan_completed:
+        return None
+    if not UserNotificationPreference.wants(recipient, "notify_scan_completed"):
         return None
     return _create(
         scan.website,
@@ -94,6 +100,8 @@ def notify_critical_findings(scan, recipient=None) -> list[Notification]:
     from apps.findings.models import FindingOccurrence
 
     if not scan.website.workspace.notify_critical_findings:
+        return []
+    if not UserNotificationPreference.wants(recipient, "notify_critical_findings"):
         return []
 
     critical_occurrences = FindingOccurrence.objects.filter(
@@ -167,7 +175,7 @@ def notify_from_previous_scan(scan, recipient=None) -> list[Notification]:
 
     notifications = []
 
-    if workspace.notify_score_drops:
+    if workspace.notify_score_drops and UserNotificationPreference.wants(recipient, "notify_score_drops"):
         threshold = workspace.score_drop_threshold
         if overall_score_delta is not None and overall_score_delta <= -threshold:
             notifications.append(
@@ -181,7 +189,11 @@ def notify_from_previous_scan(scan, recipient=None) -> list[Notification]:
                 )
             )
 
-    if workspace.notify_new_opportunities and result.new_issue_ids:
+    if (
+        workspace.notify_new_opportunities
+        and result.new_issue_ids
+        and UserNotificationPreference.wants(recipient, "notify_new_opportunities")
+    ):
         new_issues = Issue.objects.filter(id__in=result.new_issue_ids)
         notifications.append(
             _create(
@@ -194,7 +206,11 @@ def notify_from_previous_scan(scan, recipient=None) -> list[Notification]:
             )
         )
 
-    if workspace.notify_returning_issues and result.returned_issue_ids:
+    if (
+        workspace.notify_returning_issues
+        and result.returned_issue_ids
+        and UserNotificationPreference.wants(recipient, "notify_returning_issues")
+    ):
         returned_issues = Issue.objects.filter(id__in=result.returned_issue_ids)
         notifications.append(
             _create(
@@ -218,6 +234,8 @@ def notify_proposal_response(proposal, recipient=None) -> Notification | None:
     client responding to a proposal is a rare, high-value event an
     agency always wants to hear about, not routine scan noise.
     """
+    if not UserNotificationPreference.wants(recipient, "notify_proposal_response"):
+        return None
     response_label = proposal.get_client_response_display()
     return _create(
         proposal.website,

@@ -167,6 +167,12 @@
             <button type="submit" class="btn-ghost px-4 py-2.5 text-sm">Change password</button>
         </form>
     </div>
+
+    {% if is_workspace_owner %}
+    <div class="mt-6" style="border-top: 1px solid var(--color-border-soft); padding-top: 20px;">
+        <button type="button" class="link-danger" onclick="document.getElementById('delete-account-step1').showModal()">Delete my account</button>
+    </div>
+    {% endif %}
 </div>
 
 <div id="tour-settings-workspace" class="card p-6 max-w-3xl mb-6">
@@ -323,6 +329,116 @@
         {% if is_workspace_owner %}<button type="submit" class="btn-ghost px-4 py-2.5 text-sm">Save notifications</button>{% endif %}
     </form>
 </div>
+
+<div id="tour-settings-my-notifications" class="card p-6 max-w-3xl">
+    <h2 class="eyebrow mb-1">My email notifications</h2>
+    <p class="text-xs text-muted mb-4">Your own inbox preferences — turns a category off for you personally, even if it's on for the workspace. Security emails (password changes, account deletion) always send regardless of these.</p>
+
+    <form method="post" action="{% url 'accounts:update_my_notification_preferences' %}">
+        {% csrf_token %}
+        <div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">Critical findings</p>
+                    <p class="settings-row-desc">Security issues and other urgent problems found during a scan.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_critical_findings" {% if my_notification_preference.notify_critical_findings %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">Score drops</p>
+                    <p class="settings-row-desc">Overall score falls by more than the workspace's threshold.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_score_drops" {% if my_notification_preference.notify_score_drops %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">Scan completed</p>
+                    <p class="settings-row-desc">A scan finishes, whether it succeeds or fails.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_scan_completed" {% if my_notification_preference.notify_scan_completed %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">New opportunities</p>
+                    <p class="settings-row-desc">A rescan surfaces a new growth or quick-win opportunity.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_new_opportunities" {% if my_notification_preference.notify_new_opportunities %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">Returning issues</p>
+                    <p class="settings-row-desc">Something previously resolved shows up again on a rescan.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_returning_issues" {% if my_notification_preference.notify_returning_issues %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">Credits exhausted</p>
+                    <p class="settings-row-desc">Monitoring skipped a scheduled scan because the workspace is out of credits.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_credits_exhausted" {% if my_notification_preference.notify_credits_exhausted %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <p class="settings-row-label">Client responded to a proposal</p>
+                    <p class="settings-row-desc">A client accepts, declines, or comments on a shared proposal link.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notify_proposal_response" {% if my_notification_preference.notify_proposal_response %}checked{% endif %}>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+        </div>
+        <button type="submit" class="btn-ghost px-4 py-2.5 text-sm">Save my preferences</button>
+    </form>
+</div>
+
+{% if is_workspace_owner %}
+<dialog id="delete-account-step1" class="confirm-dialog">
+    <div class="confirm-dialog-body">
+        <h3>Delete your account?</h3>
+        <p>This will permanently destroy all of your data — websites, scans, reports, and history — once processed. This can't be undone. You'll keep full access until the end of your current billing period; after that you'll be signed out automatically and your subscription won't renew.</p>
+        <div class="confirm-dialog-actions">
+            <button type="button" class="btn-ghost px-4 py-2.5 text-sm" onclick="document.getElementById('delete-account-step1').close()">Cancel</button>
+            <button type="button" class="btn-danger px-4 py-2.5 text-sm" onclick="document.getElementById('delete-account-step1').close(); document.getElementById('delete-account-step2').showModal();">Continue</button>
+        </div>
+    </div>
+</dialog>
+
+<dialog id="delete-account-step2" class="confirm-dialog">
+    <form method="post" action="{% url 'accounts:request_account_deletion' %}">
+        {% csrf_token %}
+        <div class="confirm-dialog-body">
+            <h3>Confirm your password</h3>
+            <p>Enter your password to schedule this account for deletion.</p>
+            <input type="password" name="password" placeholder="Password" required>
+            <div class="confirm-dialog-actions">
+                <button type="button" class="btn-ghost px-4 py-2.5 text-sm" onclick="document.getElementById('delete-account-step2').close()">Cancel</button>
+                <button type="submit" class="btn-danger px-4 py-2.5 text-sm">Delete my account</button>
+            </div>
+        </div>
+    </form>
+</dialog>
+{% endif %}
 
 <script>
     function sriqSelectTheme(btn) {

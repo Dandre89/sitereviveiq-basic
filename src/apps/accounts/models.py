@@ -56,3 +56,51 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+class UserNotificationPreference(models.Model):
+    """
+    One row per user, created lazily via get_for_user() the first time
+    it's needed (settings page render, or a notification send check) —
+    every user is assumed opted-in to everything until they say
+    otherwise, so a missing row behaves exactly like a row of all-True.
+
+    This is a per-user layer on top of the existing per-workspace toggles
+    (Workspace.notify_* in apps.workspaces.models): a monitoring email
+    only goes out if BOTH the workspace has that category turned on AND
+    the specific recipient hasn't opted out personally. Security and
+    account emails (password reset/changed, welcome, account deletion)
+    are never gated by this — they're not listed here on purpose.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="notification_preference")
+
+    notify_critical_findings = models.BooleanField(default=True)
+    notify_score_drops = models.BooleanField(default=True)
+    notify_scan_completed = models.BooleanField(default=True)
+    notify_new_opportunities = models.BooleanField(default=True)
+    notify_returning_issues = models.BooleanField(default=True)
+    notify_credits_exhausted = models.BooleanField(default=True)
+    notify_proposal_response = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Notification preferences for {self.user}"
+
+    @classmethod
+    def get_for_user(cls, user):
+        pref, _ = cls.objects.get_or_create(user=user)
+        return pref
+
+    @classmethod
+    def wants(cls, user, field_name: str) -> bool:
+        """True if `user` is None (no specific recipient to check), the
+        field doesn't exist (fail open rather than silently drop a
+        legitimate email over a typo), or the user's own preference row
+        has that category on — false only on an explicit opt-out."""
+        if user is None:
+            return True
+        pref = cls.objects.filter(user=user).only(field_name).first()
+        if pref is None:
+            return True
+        return getattr(pref, field_name, True)

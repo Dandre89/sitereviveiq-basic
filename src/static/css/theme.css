@@ -695,6 +695,37 @@ body {
   cursor: pointer;
 }
 
+/* --- Confirmation dialogs (e.g. account deletion) --- */
+.link-danger {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color .15s ease, text-decoration-color .15s ease;
+}
+.link-danger:hover { color: var(--color-danger); text-decoration-color: currentColor; }
+
+dialog.confirm-dialog {
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 420px;
+  width: 90%;
+  background: var(--color-card);
+  color: var(--color-text);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+}
+dialog.confirm-dialog::backdrop { background: rgba(0, 0, 0, .5); }
+dialog.confirm-dialog .confirm-dialog-body { padding: 24px; }
+dialog.confirm-dialog h3 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+dialog.confirm-dialog p { font-size: 13px; color: var(--color-text-secondary); margin: 0 0 16px; line-height: 1.5; }
+dialog.confirm-dialog input[type="password"] { width: 100%; margin-bottom: 16px; }
+dialog.confirm-dialog .confirm-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
 /* --- Status pills --- */
 .pill {
   border-radius: 20px;
@@ -1411,3 +1442,25 @@ html.drawer-collapsed #main-content { margin-left: var(--sidebar-width-collapsed
 .sort-header-active {
   color: var(--color-primary);
 }
+
+/* --- Login page decorative background ---
+   A soft two-color glow in the logo brand colors (#0090FF -> #00C9E8),
+   pinned to the actual browser viewport (position: fixed; inset: 0) so
+   it floods the full screen edge-to-edge on any size display. Built as
+   percentage-anchored radial-gradients rather than fixed-pixel blurred
+   circles — a fixed-size shape either leaves a bare gap in the middle
+   on a wide screen or overflows badly on a narrow one; gradients sized
+   as percentages of the viewport scale correctly either way. Colors
+   are hardcoded to the logo gradient (not var(--color-primary)) so
+   this always reads as on-brand regardless of which theme is active. */
+.login-hero-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(0, 144, 255, 0.34) 0%, rgba(0, 144, 255, 0) 48%),
+    radial-gradient(circle at 92% 92%, rgba(0, 201, 232, 0.36) 0%, rgba(0, 201, 232, 0) 48%);
+}
+

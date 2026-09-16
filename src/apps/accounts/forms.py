@@ -30,6 +30,22 @@ class SignupForm(forms.Form):
         return password
 
 
+class AccountDeletionForm(forms.Form):
+    """Password re-entry gate for the second step of self-serve account deletion."""
+
+    password = forms.CharField(widget=forms.PasswordInput, label="Password")
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_password(self):
+        password = self.cleaned_data["password"]
+        if self.user is None or not self.user.check_password(password):
+            raise forms.ValidationError("That password isn't correct.")
+        return password
+
+
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = User

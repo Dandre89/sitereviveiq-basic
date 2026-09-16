@@ -10,16 +10,27 @@ from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from apps.billing import services as billing_services
 from apps.billing.models import Subscription
-from apps.workspaces.models import Workspace, WorkspaceMembership
+from apps.workspaces.models import AuditLogEntry, Workspace, WorkspaceMembership
 
-from .forms import ProfileForm, SignupForm
-from .models import User
+from .forms import AccountDeletionForm, ProfileForm, SignupForm
+from .models import User, UserNotificationPreference
+
+NOTIFICATION_PREFERENCE_FIELDS = [
+    "notify_critical_findings",
+    "notify_score_drops",
+    "notify_scan_completed",
+    "notify_new_opportunities",
+    "notify_returning_issues",
+    "notify_credits_exhausted",
+    "notify_proposal_response",
+]
 
 
 def _unique_workspace_slug(name: str) -> str:
@@ -137,6 +148,86 @@ def change_password(request):
         for field_errors in form.errors.values():
             for error in field_errors:
                 messages.error(request, error)
+    return redirect("core:settings")
+
+
+@login_required
+def update_my_notification_preferences(request):
+    """
+    Per-user opt-out for the monitoring-style emails (scan completed,
+    critical finding, credits exhausted, etc.) — separate from, and on
+    top of, the per-workspace toggle every owner controls in
+    apps.workspaces.views.update_notifications. Every checkbox defaults
+    unchecked when *absent* from POST, so an unchecked box correctly
+    turns a category off rather than leaving it untouched.
+    """
+    if request.method != "POST":
+        return redirect("core:settings")
+
+    pref = UserNotificationPreference.get_for_user(request.user)
+    for field_name in NOTIFICATION_PREFERENCE_FIELDS:
+        setattr(pref, field_name, field_name in request.POST)
+    pref.save()
+    messages.success(request, "Your notification preferences were saved.")
+    return redirect("core:settings")
+
+
+@login_required
+@require_POST
+def request_account_deletion(request):
+    """
+    Self-serve account deletion. Only a workspace owner can trigger this.
+
+    This does NOT delete any data. It's a soft, staff-reversible
+    "pending" flag: Stripe is set to stop renewing at the end of the
+    current paid period (no proration, no refund — see
+    billing.services.cancel_subscription_at_period_end), and the
+    workspace is marked owner_deleted. Access continues completely
+    normally until the paid period actually runs out — cutoff happens
+    on its own via SubscriptionEnforcementMiddleware once Stripe's
+    webhook reports the subscription has lapsed. The workspace and
+    everything in it stay fully intact in the database until a staff
+    member performs the separate, irreversible permanent-purge action
+    in the admin console.
+    """
+    membership = WorkspaceMembership.objects.filter(
+        workspace=request.workspace, user=request.user
+    ).first()
+    if membership is None or membership.role != WorkspaceMembership.Role.OWNER:
+        messages.error(request, "Only the workspace owner can delete this account.")
+        return redirect("core:settings")
+
+    form = AccountDeletionForm(request.POST, user=request.user)
+    if not form.is_valid():
+        messages.error(request, "That password isn't correct — account not deleted.")
+        return redirect("core:settings")
+
+    workspace = request.workspace
+    subscription = getattr(workspace, "subscription", None)
+    if subscription is not None:
+        try:
+            billing_services.cancel_subscription_at_period_end(subscription)
+        except billing_services.StripeNotConfiguredError:
+            pass  # local/dev environment — nothing to cancel, just proceed with flagging the workspace
+
+    workspace.lifecycle_status = Workspace.LifecycleStatus.OWNER_DELETED
+    workspace.deletion_requested_at = timezone.now()
+    workspace.deletion_requested_by = request.user
+    workspace.save(update_fields=["lifecycle_status", "deletion_requested_at", "deletion_requested_by"])
+
+    AuditLogEntry.objects.create(
+        workspace=workspace,
+        actor=request.user,
+        action=AuditLogEntry.Action.DELETION_REQUESTED,
+        description=f"{request.user.email} requested account deletion.",
+    )
+
+    messages.success(
+        request,
+        "Your account is scheduled for deletion. You'll keep full access until your "
+        "current billing period ends, then you'll be signed out automatically. "
+        "Contact us before then if you change your mind.",
+    )
     return redirect("core:settings")
 
 

@@ -239,6 +239,35 @@ def create_billing_portal_session(subscription: Subscription, return_url: str) -
     return session.url
 
 
+def cancel_subscription_at_period_end(subscription: Subscription) -> Subscription:
+    """
+    Used by self-serve account deletion (apps.accounts.views.request_account_deletion)
+    and the admin console's staff-initiated equivalent for Enterprise. Sets
+    Stripe's native cancel_at_period_end flag rather than canceling
+    immediately — no proration, no refund; the workspace keeps full access
+    through whatever they already paid for, and simply stops renewing.
+    Access cuts off on its own once Stripe's customer.subscription.deleted
+    webhook lands and SubscriptionEnforcementMiddleware sees a non-access-
+    granting status — nothing else has to happen for the cutoff itself.
+
+    Applies the returned Stripe object locally right away (not just
+    waiting on the webhook) so the Settings billing card reflects
+    "Access ends <date>" immediately after the owner confirms deletion.
+    A no-op if this workspace was never linked to a real subscription —
+    the caller still proceeds with flagging the workspace either way.
+    """
+    if not subscription.is_linked:
+        return subscription
+
+    client = build_client()
+    stripe_sub = client.v1.subscriptions.update(
+        subscription.stripe_subscription_id, {"cancel_at_period_end": True}
+    )
+    _apply_stripe_subscription(subscription, stripe_sub)
+    subscription.save()
+    return subscription
+
+
 def sync_subscription_from_stripe(subscription: Subscription) -> Subscription:
     """
     Pulls current status/period-end/price straight from the Stripe API

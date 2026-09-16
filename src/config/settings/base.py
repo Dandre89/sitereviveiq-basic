@@ -173,7 +173,7 @@ if os.environ.get("EMAIL_HOST"):
     EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "notifications@sitereviveiq.com")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@sitereviveiq.com")
 
 # --- Scoring: score-drop threshold that triggers a notification (Build 7) ---
 SCORE_DROP_NOTIFICATION_THRESHOLD = int(os.environ.get("SCORE_DROP_NOTIFICATION_THRESHOLD", 10))
