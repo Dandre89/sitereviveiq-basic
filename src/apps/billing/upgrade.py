@@ -151,9 +151,27 @@ def create_upgrade_checkout_session(
     return session.url
 
 
+def _session_metadata(session) -> dict:
+    """
+    session.metadata arrives as a Stripe SDK object (StripeObject), not a
+    plain dict — as of the stripe-python version pinned here, StripeObject
+    no longer supports dict methods like .get() directly (calling one
+    raises AttributeError via its __getattr__, since it looks for an
+    attribute named "get" rather than a key). .to_dict() is the
+    SDK-documented way to get a real dict back out. Every metadata read
+    in this module goes through this helper so there's exactly one place
+    that knows about that quirk.
+    """
+    metadata = getattr(session, "metadata", None)
+    if metadata is None:
+        return {}
+    if hasattr(metadata, "to_dict"):
+        return metadata.to_dict()
+    return dict(metadata)
+
+
 def is_upgrade_session(session) -> bool:
-    metadata = getattr(session, "metadata", None) or {}
-    return metadata.get("upgrade_to_pro") == "true"
+    return _session_metadata(session).get("upgrade_to_pro") == "true"
 
 
 def complete_upgrade_from_checkout_session(session) -> Subscription | None:
@@ -168,7 +186,7 @@ def complete_upgrade_from_checkout_session(session) -> Subscription | None:
     if not is_upgrade_session(session):
         return None
 
-    workspace_id = getattr(session, "client_reference_id", None) or session.metadata.get(
+    workspace_id = getattr(session, "client_reference_id", None) or _session_metadata(session).get(
         "basic_workspace_id"
     )
     if not workspace_id:
@@ -195,7 +213,7 @@ def complete_upgrade_from_checkout_session(session) -> Subscription | None:
 
     client = build_client()
     stripe_sub = client.v1.subscriptions.retrieve(stripe_subscription_id)
-    interval = session.metadata.get("interval") or subscription.intended_interval or "monthly"
+    interval = _session_metadata(session).get("interval") or subscription.intended_interval or "monthly"
 
     try:
         with transaction.atomic():

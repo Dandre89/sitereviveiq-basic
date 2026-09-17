@@ -1,0 +1,11 @@
+We couldn't process your payment
+
+Hi{% if first_name %} {{ first_name }}{% endif %}, we tried to charge the card on file for your SiteRevive IQ subscription and it didn't go through. This can happen with an expired card, insufficient funds, or a bank decline.
+
+Update your payment method to keep your account active — we'll automatically retry the charge, but it's fastest to fix it directly:
+
+{{ billing_url }}
+
+If this isn't resolved soon, your account access may be paused. Questions? Email support@sitereviveiq.com.
+
+— SiteRevive IQ

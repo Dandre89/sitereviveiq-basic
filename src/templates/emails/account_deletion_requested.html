@@ -1,0 +1,21 @@
+{% extends "emails/base_email.html" %}
+{% block subject %}Your SiteRevive IQ account is scheduled for deletion{% endblock %}
+{% block content %}
+<h1 style="margin:0 0 16px 0; font-size:20px; line-height:1.3; color:#0F172A;">Your account is scheduled for deletion</h1>
+
+<p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#334155;">
+Hi{% if first_name %} {{ first_name }}{% endif %}, this confirms we received a request to delete the {{ workspace_name }} account on SiteRevive IQ.
+</p>
+
+<p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#334155;">
+You'll keep full access until your current billing period ends, then you'll be signed out automatically. Nothing is deleted immediately — your data stays intact until a staff member completes the permanent removal.
+</p>
+
+<p style="margin:0 0 20px 0; font-size:15px; line-height:1.6; color:#334155;">
+Changed your mind? Contact us before your billing period ends and we'll cancel the deletion.
+</p>
+
+<p style="margin:24px 0 0 0; font-size:13px; line-height:1.6; color:#64748B;">
+Questions? Email support@sitereviveiq.com — a real person reads it.
+</p>
+{% endblock %}

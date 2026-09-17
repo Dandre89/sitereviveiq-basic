@@ -1,0 +1,17 @@
+Welcome to SiteRevive IQ{% if first_name %}, {{ first_name }}{% endif %}.
+
+Your account is live. You now have a standing audit engine watching over your sites — not a one-time report that goes stale the moment you close the tab.
+
+Here's what's waiting for you:
+
+- Full-depth audits across every category that actually moves the needle — technical health, SEO, content, and security & trust.
+- Prospect Audit reports that turn a wall of findings into something clean and shareable.
+- Ongoing monitoring that tells you the moment something breaks, drops, or comes back — instead of finding out from a client.
+
+The fastest way in: add your first website and run an audit. Takes a couple of minutes.
+
+Go to your dashboard: {{ dashboard_url }}
+
+Questions along the way? Email support@sitereviveiq.com — a real person reads it.
+
+— SiteRevive IQ

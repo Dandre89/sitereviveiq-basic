@@ -1,0 +1,11 @@
+Your trial ends {{ trial_end_date }}
+
+Hi{% if first_name %} {{ first_name }}{% endif %}, just a heads-up: your SiteRevive IQ trial wraps up on {{ trial_end_date }}. After that, your card on file will be charged automatically to continue your subscription — no action needed if you want to keep going.
+
+Want to update your payment method or review your plan first? You can do that any time from Settings:
+
+{{ billing_url }}
+
+Questions? Email support@sitereviveiq.com — a real person reads it.
+
+— SiteRevive IQ

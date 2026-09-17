@@ -35,6 +35,9 @@ import datetime as dt
 
 import stripe
 from django.conf import settings
+from django.urls import reverse
+
+from apps.core.emails import send_templated_email
 
 from .models import Subscription
 
@@ -321,7 +324,7 @@ def _apply_stripe_subscription(subscription: Subscription, stripe_sub) -> None:
         subscription.stripe_customer_id = customer if isinstance(customer, str) else customer.id
 
 
-def handle_webhook_event(event) -> None:
+def handle_webhook_event(event, request=None) -> None:
     """
     Dispatches a verified Stripe webhook event. Only subscription and
     invoice events touch a Subscription row — everything else is
@@ -329,6 +332,16 @@ def handle_webhook_event(event) -> None:
     commonly receives a broader event stream than any one handler cares
     about; deciding which events actually get sent is a Dashboard-side
     concern, not this function's job.
+
+    `request` is the Django request Stripe's POST arrived on (passed
+    through from apps.billing.views.stripe_webhook) — used only to build
+    absolute links (request.build_absolute_uri) in the payment-failed/
+    subscription-canceled emails below (trial_will_end is wired for
+    parity with Enterprise/Pro but never actually fires here — this
+    build's signup has no trial_period_days, see module docstring).
+    Since Stripe posts directly to our own webhook endpoint, its Host
+    header is our own domain, so this resolves the same links a real
+    user's browser would. Optional and skipped harmlessly if omitted.
     """
     event_type = event.type
     data_object = event.data.object
@@ -351,9 +364,19 @@ def handle_webhook_event(event) -> None:
                 upgrade.complete_upgrade_from_checkout_session(data_object)
             else:
                 link_subscription_from_checkout_session(data_object)
+    elif event_type == "customer.subscription.trial_will_end":
+        _notify_trial_ending(data_object, request)
+    elif event_type == "customer.subscription.deleted":
+        _sync_from_subscription_object(data_object)
+        _notify_subscription_canceled(data_object, request)
     elif event_type.startswith("customer.subscription."):
         _sync_from_subscription_object(data_object)
-    elif event_type in ("invoice.paid", "invoice.payment_failed"):
+    elif event_type == "invoice.payment_failed":
+        subscription_id = getattr(data_object, "subscription", None)
+        if subscription_id:
+            _resync_subscription_id(subscription_id)
+            _notify_payment_failed(subscription_id, request)
+    elif event_type == "invoice.paid":
         subscription_id = getattr(data_object, "subscription", None)
         if subscription_id:
             _resync_subscription_id(subscription_id)
@@ -374,3 +397,69 @@ def _resync_subscription_id(stripe_subscription_id: str) -> None:
     if subscription is None:
         return
     sync_subscription_from_stripe(subscription)
+
+
+def _workspace_owner(workspace):
+    from apps.workspaces.models import WorkspaceMembership
+
+    membership = (
+        WorkspaceMembership.objects.filter(workspace=workspace, role=WorkspaceMembership.Role.OWNER)
+        .select_related("user")
+        .first()
+    )
+    return membership.user if membership else None
+
+
+def _billing_url(request) -> str | None:
+    if request is None:
+        return None
+    return request.build_absolute_uri(reverse("core:settings"))
+
+
+def _notify_trial_ending(stripe_sub, request) -> None:
+    subscription = Subscription.objects.filter(stripe_subscription_id=stripe_sub.id).select_related("workspace").first()
+    if subscription is None:
+        return
+    owner = _workspace_owner(subscription.workspace)
+    if owner is None:
+        return
+    trial_end = getattr(stripe_sub, "trial_end", None)
+    trial_end_date = (
+        dt.datetime.fromtimestamp(trial_end, tz=dt.timezone.utc).strftime("%B %-d, %Y") if trial_end else "soon"
+    )
+    send_templated_email(
+        template_name="trial_ending",
+        context={"first_name": owner.first_name, "trial_end_date": trial_end_date, "billing_url": _billing_url(request)},
+        subject="Your SiteRevive IQ trial ends soon",
+        to=[owner.email],
+    )
+
+
+def _notify_payment_failed(stripe_subscription_id: str, request) -> None:
+    subscription = Subscription.objects.filter(stripe_subscription_id=stripe_subscription_id).select_related("workspace").first()
+    if subscription is None:
+        return
+    owner = _workspace_owner(subscription.workspace)
+    if owner is None:
+        return
+    send_templated_email(
+        template_name="payment_failed",
+        context={"first_name": owner.first_name, "billing_url": _billing_url(request)},
+        subject="We couldn't process your SiteRevive IQ payment",
+        to=[owner.email],
+    )
+
+
+def _notify_subscription_canceled(stripe_sub, request) -> None:
+    subscription = Subscription.objects.filter(stripe_subscription_id=stripe_sub.id).select_related("workspace").first()
+    if subscription is None:
+        return
+    owner = _workspace_owner(subscription.workspace)
+    if owner is None:
+        return
+    send_templated_email(
+        template_name="subscription_canceled",
+        context={"first_name": owner.first_name, "billing_url": _billing_url(request)},
+        subject="Your SiteRevive IQ subscription has ended",
+        to=[owner.email],
+    )

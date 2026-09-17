@@ -1,0 +1,11 @@
+Your account is scheduled for deletion
+
+Hi{% if first_name %} {{ first_name }}{% endif %}, this confirms we received a request to delete the {{ workspace_name }} account on SiteRevive IQ.
+
+You'll keep full access until your current billing period ends, then you'll be signed out automatically. Nothing is deleted immediately — your data stays intact until a staff member completes the permanent removal.
+
+Changed your mind? Contact us before your billing period ends and we'll cancel the deletion.
+
+Questions? Email support@sitereviveiq.com — a real person reads it.
+
+— SiteRevive IQ

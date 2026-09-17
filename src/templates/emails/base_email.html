@@ -1,0 +1,67 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block subject %}SiteRevive IQ{% endblock %}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#F1F5F9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="
+  background-color:#F1F5F9;
+  background-image:
+    radial-gradient(circle at 0% 0%, rgba(0,144,255,0.12) 0%, rgba(0,144,255,0) 42%),
+    radial-gradient(circle at 100% 15%, rgba(0,201,232,0.14) 0%, rgba(0,201,232,0) 42%);
+  padding:32px 16px;">
+<tr>
+<td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background-color:#FFFFFF; border-radius:14px; overflow:hidden; border:1px solid #E2E8F0; box-shadow:0 1px 3px rgba(15,23,42,0.06);">
+
+<!-- Gradient header banner — same blue-to-cyan brand gradient as the
+     logo mark and the login screen's glow background. Solid #0090FF
+     is declared first as the fallback for clients (Outlook desktop)
+     that ignore CSS gradients/background-image. -->
+<tr>
+<td style="
+  background-color:#0090FF;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 42%),
+    radial-gradient(circle at 92% 100%, rgba(0,201,232,0.65) 0%, rgba(0,201,232,0) 55%),
+    linear-gradient(135deg, #0090FF 0%, #00C9E8 100%);
+  padding:26px 32px;">
+<table role="presentation" cellpadding="0" cellspacing="0">
+<tr>
+<td style="width:36px; height:36px; border-radius:10px; background-color:#FFFFFF; text-align:center; vertical-align:middle; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-weight:800; font-size:14px; letter-spacing:-0.02em; color:#0090FF;">SR</td>
+<td style="width:10px;">&nbsp;</td>
+<td style="vertical-align:middle; font-size:17px; font-weight:700; letter-spacing:-0.01em; color:#FFFFFF;">SiteRevive&nbsp;IQ</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Thin brand-gradient divider, echoing the banner above -->
+<tr>
+<td style="height:3px; line-height:3px; font-size:0; background-color:#0090FF; background-image:linear-gradient(90deg, #0090FF 0%, #00C9E8 100%);">&nbsp;</td>
+</tr>
+
+<tr>
+<td style="padding:32px;">
+{% block content %}{% endblock %}
+</td>
+</tr>
+
+<tr>
+<td style="padding:20px 32px; background-color:#F8FAFC; border-top:1px solid #E2E8F0;">
+<p style="margin:0 0 4px 0; font-size:12px; color:#64748B;">SiteRevive IQ &middot; sitereviveiq.com</p>
+<p style="margin:0; font-size:12px; color:#94A3B8;">
+{% block footer_note %}You're receiving this because it's related to your SiteRevive IQ account.{% endblock %}
+{% block preferences_link %}{% endblock %}
+</p>
+</td>
+</tr>
+
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>
