@@ -271,11 +271,13 @@ def _migrate_workspace_data(workspace_id: str) -> None:
             INSERT INTO pro.workspaces_workspace
                 (id, name, slug, is_active, notify_critical_findings, notify_score_drops,
                  notify_scan_completed, notify_new_opportunities, notify_returning_issues,
-                 score_drop_threshold, logo, show_powered_by, created_at, updated_at)
+                 score_drop_threshold, logo, show_powered_by, lifecycle_status,
+                 created_at, updated_at)
             SELECT
                 id, name, slug, is_active, notify_critical_findings, notify_score_drops,
                 notify_scan_completed, notify_new_opportunities, notify_returning_issues,
-                score_drop_threshold, logo, show_powered_by, created_at, updated_at
+                score_drop_threshold, logo, show_powered_by, lifecycle_status,
+                created_at, updated_at
             FROM basic.workspaces_workspace
             WHERE id = %(wid)s
             ON CONFLICT (id) DO NOTHING
