@@ -205,14 +205,24 @@
                 {% if subscription.cancel_at_period_end %}Access ends{% else %}Renews{% endif %} {{ subscription.current_period_end|date:"M j, Y" }}
             </p>
             {% elif not subscription.is_linked %}
-            <p class="settings-row-desc">Not yet linked to a Stripe subscription — contact SiteRevive IQ to get billing set up.</p>
+            <p class="settings-row-desc">
+                {% if is_workspace_owner %}You haven't finished checkout yet — click Complete checkout to set up billing.{% else %}Not yet linked to a Stripe subscription — the workspace owner needs to finish checkout.{% endif %}
+            </p>
             {% endif %}
         </div>
-        {% if is_workspace_owner and subscription.is_linked %}
-        <form method="post" action="{% url 'billing:portal' %}">
-            {% csrf_token %}
-            <button type="submit" class="btn-ghost px-4 py-2.5 text-sm">Manage billing</button>
-        </form>
+        {% if is_workspace_owner %}
+            {% if subscription.is_linked %}
+            <form method="post" action="{% url 'billing:portal' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn-ghost px-4 py-2.5 text-sm">Manage billing</button>
+            </form>
+            {% elif not subscription.current_period_end and subscription.status != 'canceled' and subscription.status != 'incomplete_expired' %}
+            <form method="post" action="{% url 'billing:retry_checkout' %}">
+                {% csrf_token %}
+                <input type="hidden" name="interval" value="{{ subscription.intended_interval|default:'monthly' }}">
+                <button type="submit" class="btn-primary px-4 py-2.5 text-sm" style="white-space:nowrap;">Complete checkout</button>
+            </form>
+            {% endif %}
         {% endif %}
     </div>
     {% else %}
