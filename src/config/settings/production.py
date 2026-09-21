@@ -12,6 +12,7 @@ if not ALLOWED_HOSTS:  # noqa: F405
 
 # --- Security requirements, section 12.2 ---
 SECURE_SSL_REDIRECT = True
+SECURE_REDIRECT_EXEMPT = [r"^accounts/internal/"]  # internal container-to-container calls have no X-Forwarded-Proto
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = 31536000

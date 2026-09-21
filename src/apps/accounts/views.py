@@ -336,6 +336,7 @@ def internal_trigger_password_reset(request):
             form.save(
                 email_template_name="registration/password_reset_email.html",
                 subject_template_name="registration/password_reset_subject.txt",
+                request=request,
             )
 
     # Always returns the same shape whether or not the account exists —
@@ -343,3 +344,76 @@ def internal_trigger_password_reset(request):
     # so this endpoint can't be used to enumerate which emails have
     # accounts on this tier.
     return JsonResponse({"status": "ok"})
+
+
+@csrf_exempt
+@require_POST
+def internal_create_account(request):
+    """Admin-console-driven Basic account provisioning for sales-assisted /
+    manual signups (a deal that didn't go through self-serve Stripe
+    Checkout). Mirrors the self-serve signup view's create-user +
+    Workspace + WorkspaceMembership(OWNER) + Subscription sequence, minus
+    the parts that only make sense mid-checkout (no password from the
+    customer, no intended_plan/interval). Reachable from the console over
+    the same Bearer-token internal-API pattern as
+    internal_trigger_password_reset above, instead of the customer's own
+    browser. The new owner has no password yet; we email them a normal
+    password-reset link (same flow self-service "forgot password" uses)
+    so they set their own, plus the standard welcome email.
+    """
+    if not settings.INTERNAL_API_TOKEN:
+        return HttpResponseForbidden("Internal API not configured.")
+
+    auth_header = request.headers.get("Authorization", "")
+    provided = auth_header.removeprefix("Bearer ").strip()
+    if not provided or not secrets.compare_digest(provided, settings.INTERNAL_API_TOKEN):
+        return HttpResponseForbidden("Invalid or missing token.")
+
+    try:
+        payload = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+
+    email = (payload.get("email") or "").strip().lower()
+    workspace_name = (payload.get("workspace_name") or "").strip()
+    first_name = (payload.get("first_name") or "").strip()
+    last_name = (payload.get("last_name") or "").strip()
+
+    if not email or not workspace_name:
+        return JsonResponse({"error": "email and workspace_name are required."}, status=400)
+
+    from django.db import transaction
+
+    from apps.billing.models import Subscription
+    from apps.workspaces.models import Workspace, WorkspaceMembership
+
+    UserModel = get_user_model()
+    if UserModel.objects.filter(email=email).exists():
+        return JsonResponse({"error": f"A user with email {email} already exists."}, status=409)
+
+    with transaction.atomic():
+        user = UserModel.objects.create_user(
+            email=email, password=None, first_name=first_name,
+        )
+        workspace = Workspace.objects.create(
+            name=workspace_name, slug=_unique_workspace_slug(workspace_name)
+        )
+        WorkspaceMembership.objects.create(
+            workspace=workspace, user=user, role=WorkspaceMembership.Role.OWNER,
+        )
+        Subscription.objects.create(workspace=workspace)
+
+    send_welcome_email(user, request)
+
+    reset_form = PasswordResetForm(data={"email": email})
+    if reset_form.is_valid():
+        reset_form.save(
+            email_template_name="registration/password_reset_email.txt",
+            html_email_template_name="registration/password_reset_email.html",
+            subject_template_name="registration/password_reset_subject.txt",
+            request=request,
+        )
+
+    return JsonResponse(
+        {"status": "ok", "user_id": str(user.id), "workspace_id": str(workspace.id)}
+    )
