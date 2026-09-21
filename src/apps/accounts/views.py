@@ -58,6 +58,9 @@ def signup(request):
     either from the synchronous checkout_success view or the
     checkout.session.completed webhook (whichever lands first).
     """
+    if request.user.is_authenticated:
+        return redirect("core:dashboard")
+
     interval = request.GET.get("interval") or request.POST.get("interval") or "monthly"
     if interval not in ("monthly", "annual"):
         interval = "monthly"
