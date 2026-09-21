@@ -5,6 +5,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
+from .validators import validate_logo_file_size
+
 
 class Workspace(models.Model):
     class LifecycleStatus(models.TextChoices):
@@ -47,7 +49,9 @@ class Workspace(models.Model):
 
     # Report branding — read by the real public share-link pages
     # (reports/public_report.html, reports/public_proposal.html).
-    logo = models.ImageField(upload_to="workspace_logos/", blank=True, null=True)
+    logo = models.ImageField(
+        upload_to="workspace_logos/", blank=True, null=True, validators=[validate_logo_file_size]
+    )
     show_powered_by = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
