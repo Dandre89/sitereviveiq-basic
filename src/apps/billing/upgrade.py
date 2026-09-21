@@ -151,9 +151,17 @@ def create_upgrade_checkout_session(
     return session.url
 
 
+def _session_metadata(session) -> dict:
+    metadata = getattr(session, "metadata", None)
+    if metadata is None:
+        return {}
+    if hasattr(metadata, "to_dict"):
+        return metadata.to_dict()
+    return dict(metadata)
+
+
 def is_upgrade_session(session) -> bool:
-    metadata = getattr(session, "metadata", None) or {}
-    return metadata.get("upgrade_to_pro") == "true"
+    return _session_metadata(session).get("upgrade_to_pro") == "true"
 
 
 def complete_upgrade_from_checkout_session(session) -> Subscription | None:
@@ -168,7 +176,7 @@ def complete_upgrade_from_checkout_session(session) -> Subscription | None:
     if not is_upgrade_session(session):
         return None
 
-    workspace_id = getattr(session, "client_reference_id", None) or session.metadata.get(
+    workspace_id = getattr(session, "client_reference_id", None) or _session_metadata(session).get(
         "basic_workspace_id"
     )
     if not workspace_id:
@@ -195,7 +203,7 @@ def complete_upgrade_from_checkout_session(session) -> Subscription | None:
 
     client = build_client()
     stripe_sub = client.v1.subscriptions.retrieve(stripe_subscription_id)
-    interval = session.metadata.get("interval") or subscription.intended_interval or "monthly"
+    interval = _session_metadata(session).get("interval") or subscription.intended_interval or "monthly"
 
     try:
         with transaction.atomic():
@@ -253,11 +261,13 @@ def _migrate_workspace_data(workspace_id: str) -> None:
             INSERT INTO pro.workspaces_workspace
                 (id, name, slug, is_active, notify_critical_findings, notify_score_drops,
                  notify_scan_completed, notify_new_opportunities, notify_returning_issues,
-                 score_drop_threshold, logo, show_powered_by, created_at, updated_at)
+                 score_drop_threshold, logo, show_powered_by, lifecycle_status,
+                 created_at, updated_at)
             SELECT
                 id, name, slug, is_active, notify_critical_findings, notify_score_drops,
                 notify_scan_completed, notify_new_opportunities, notify_returning_issues,
-                score_drop_threshold, logo, show_powered_by, created_at, updated_at
+                score_drop_threshold, logo, show_powered_by, lifecycle_status,
+                created_at, updated_at
             FROM basic.workspaces_workspace
             WHERE id = %(wid)s
             ON CONFLICT (id) DO NOTHING
