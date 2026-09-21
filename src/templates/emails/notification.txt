@@ -1,0 +1,9 @@
+{{ title }}
+
+{{ message }}
+
+View in SiteRevive IQ: {{ notifications_url }}
+
+You can adjust which of these emails you get from Settings -> Notifications.
+
+— SiteRevive IQ

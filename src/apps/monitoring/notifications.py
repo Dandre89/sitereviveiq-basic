@@ -5,9 +5,10 @@ whatever EMAIL_BACKEND is configured (console locally, real SMTP once
 deployed) — this module doesn't know or care which.
 """
 from django.conf import settings
-from django.core.mail import send_mail
+from django.urls import reverse
 
 from apps.accounts.models import UserNotificationPreference
+from apps.core.emails import send_templated_email
 
 from .models import Notification
 
@@ -18,14 +19,20 @@ def _send_email(notification: Notification) -> None:
     if not notification.recipient or not notification.recipient.email:
         return
     try:
-        send_mail(
+        notifications_url = f"{settings.SITE_PROTOCOL}://{settings.SITE_DOMAIN}{reverse('monitoring:list')}"
+        sent = send_templated_email(
+            template_name="notification",
+            context={
+                "first_name": notification.recipient.first_name,
+                "title": notification.title,
+                "message": notification.message,
+                "notifications_url": notifications_url,
+            },
             subject=f"SiteRevive IQ: {notification.title}",
-            message=notification.message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[notification.recipient.email],
-            fail_silently=True,
+            to=[notification.recipient.email],
+            fail_silently=False,
         )
-        notification.email_sent = True
+        notification.email_sent = sent
         notification.save(update_fields=["email_sent"])
     except Exception:  # noqa: BLE001 — a notification failure must never break the scan pipeline
         pass

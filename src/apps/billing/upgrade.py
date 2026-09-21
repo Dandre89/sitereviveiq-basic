@@ -152,6 +152,16 @@ def create_upgrade_checkout_session(
 
 
 def _session_metadata(session) -> dict:
+    """
+    session.metadata arrives as a Stripe SDK object (StripeObject), not a
+    plain dict — as of the stripe-python version pinned here, StripeObject
+    no longer supports dict methods like .get() directly (calling one
+    raises AttributeError via its __getattr__, since it looks for an
+    attribute named "get" rather than a key). .to_dict() is the
+    SDK-documented way to get a real dict back out. Every metadata read
+    in this module goes through this helper so there's exactly one place
+    that knows about that quirk.
+    """
     metadata = getattr(session, "metadata", None)
     if metadata is None:
         return {}

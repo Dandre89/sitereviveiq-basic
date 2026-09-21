@@ -4,6 +4,7 @@ import secrets
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login, update_session_auth_hash
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
 from django.db import transaction
@@ -17,6 +18,7 @@ from django.views.decorators.http import require_POST
 
 from apps.billing import services as billing_services
 from apps.billing.models import Subscription
+from apps.core.emails import send_templated_email
 from apps.workspaces.models import AuditLogEntry, Workspace, WorkspaceMembership
 
 from .forms import AccountDeletionForm, ProfileForm, SignupForm
@@ -31,6 +33,58 @@ NOTIFICATION_PREFERENCE_FIELDS = [
     "notify_credits_exhausted",
     "notify_proposal_response",
 ]
+
+
+def send_welcome_email(user, request) -> None:
+    """Fired the moment a new user account exists — self-serve signup
+    below is the only path that creates one in this single-workspace
+    build (no team invites in Basic)."""
+    send_templated_email(
+        template_name="welcome",
+        context={
+            "first_name": user.first_name,
+            "dashboard_url": request.build_absolute_uri(reverse("core:dashboard")),
+        },
+        subject="Welcome to SiteRevive IQ",
+        to=[user.email],
+    )
+
+
+def send_password_changed_email(user) -> None:
+    """
+    Security confirmation sent any time a password successfully changes —
+    from the in-app change-password form (change_password below) or from
+    completing the forgot-password reset flow (PasswordChangedConfirmView
+    below). Never gated by notification preferences: this one's mandatory.
+    """
+    send_templated_email(
+        template_name="password_changed",
+        context={"first_name": user.first_name, "email": user.email},
+        subject="Your SiteRevive IQ password was changed",
+        to=[user.email],
+    )
+
+
+class PasswordChangedConfirmView(auth_views.PasswordResetConfirmView):
+    """Same reset-confirm flow as Django's own view — the only addition is
+    firing the security confirmation email once the new password is saved."""
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        send_password_changed_email(form.user)
+        return response
+
+
+def send_account_deletion_requested_email(user, workspace) -> None:
+    """Confirmation sent the moment the workspace owner requests self-serve
+    deletion (request_account_deletion below) — reassures them nothing's
+    gone yet and tells them how to back out before the billing period ends."""
+    send_templated_email(
+        template_name="account_deletion_requested",
+        context={"first_name": user.first_name, "workspace_name": workspace.name},
+        subject="Your SiteRevive IQ account is scheduled for deletion",
+        to=[user.email],
+    )
 
 
 def _unique_workspace_slug(name: str) -> str:
@@ -96,6 +150,7 @@ def signup(request):
                 )
 
             login(request, user)
+            send_welcome_email(user, request)
 
             success_url = (
                 request.build_absolute_uri(reverse("billing:checkout_success"))
@@ -146,6 +201,7 @@ def change_password(request):
     if form.is_valid():
         user = form.save()
         update_session_auth_hash(request, user)  # keep the session valid after changing the password
+        send_password_changed_email(user)
         messages.success(request, "Password changed.")
     else:
         for field_errors in form.errors.values():
@@ -224,6 +280,7 @@ def request_account_deletion(request):
         action=AuditLogEntry.Action.DELETION_REQUESTED,
         description=f"{request.user.email} requested account deletion.",
     )
+    send_account_deletion_requested_email(request.user, workspace)
 
     messages.success(
         request,

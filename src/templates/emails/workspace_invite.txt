@@ -1,0 +1,11 @@
+You're invited to {{ workspace_name }}
+
+You've been invited to join {{ workspace_name }} on SiteRevive IQ as {{ role_display }}.
+
+Accept the invite here:
+
+{{ accept_url }}
+
+This invite link expires in {{ expiry_days }} days. If you weren't expecting this, you can safely ignore this email.
+
+— SiteRevive IQ

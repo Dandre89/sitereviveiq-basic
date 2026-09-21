@@ -327,7 +327,7 @@ def stripe_webhook(request):
         return HttpResponse(status=400)
 
     try:
-        services.handle_webhook_event(event)
+        services.handle_webhook_event(event, request)
     except Exception:
         # Non-2xx tells Stripe to retry with backoff — better than
         # silently swallowing a failed status update.

@@ -206,7 +206,7 @@
             </p>
             {% elif not subscription.is_linked %}
             <p class="settings-row-desc">
-                {% if is_workspace_owner %}You haven't finished checkout yet  click Complete checkout to set up billing.{% else %}Not yet linked to a Stripe subscription  the workspace owner needs to finish checkout.{% endif %}
+                {% if is_workspace_owner %}You haven't finished checkout yet — click Complete checkout to set up billing.{% else %}Not yet linked to a Stripe subscription — the workspace owner needs to finish checkout.{% endif %}
             </p>
             {% endif %}
         </div>
