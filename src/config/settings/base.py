@@ -48,6 +48,7 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
     "apps.workspaces.middleware.CurrentWorkspaceMiddleware",
     "apps.billing.middleware.SubscriptionEnforcementMiddleware",
+    "apps.core.middleware.RatelimitMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -155,7 +156,10 @@ CACHES = {
 # instead of letting the Ratelimited exception fall through to Django's
 # generic 403 handler.
 RATELIMIT_USE_CACHE = "default"
-RATELIMIT_VIEW = "apps.core.views.ratelimited"
+# NOTE: there's no such thing as a RATELIMIT_VIEW setting — django-ratelimit
+# just raises django_ratelimit.exceptions.Ratelimited (a PermissionDenied
+# subclass). apps.core.middleware.RatelimitMiddleware (registered above in
+# MIDDLEWARE) catches it via process_exception and renders 429.html.
 
 # --- Celery ---
 CELERY_BROKER_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
