@@ -24,6 +24,16 @@ def legal_refund_policy(request):
     return render(request, "legal/refund_policy.html")
 
 
+def ratelimited(request, exception=None):
+    """
+    RATELIMIT_VIEW target (see settings) — called in place of the default
+    403 whenever an @ratelimit-decorated view (login, password reset,
+    signup) trips its limit. Always safe for an anonymous visitor: no
+    workspace/user context required.
+    """
+    return render(request, "429.html", status=429)
+
+
 @login_required
 def dashboard(request):
     websites = scope_websites(request, Website.objects.filter(workspace=request.workspace), lookup="pk")

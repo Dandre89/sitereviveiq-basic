@@ -1,15 +1,35 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
+from django_ratelimit.decorators import ratelimit
 
 from . import views
 
 app_name = "accounts"
 
+# Rate limits on the public, unauthenticated auth endpoints — brute-force
+# login guessing, password-reset-email spam/enumeration, and automated
+# signup abuse. Keyed by IP; block=True means a request past the limit is
+# routed to settings.RATELIMIT_VIEW (429.html) instead of reaching the
+# view at all.
+signup_view = ratelimit(key="ip", rate="10/h", method="POST", block=True)(views.signup)
+login_view = ratelimit(key="ip", rate="10/5m", method="POST", block=True)(
+    auth_views.LoginView.as_view(template_name="registration/login.html", redirect_authenticated_user=True)
+)
+password_reset_view = ratelimit(key="ip", rate="5/h", method="POST", block=True)(
+    auth_views.PasswordResetView.as_view(
+        template_name="registration/password_reset_form.html",
+        email_template_name="registration/password_reset_email.txt",
+        html_email_template_name="registration/password_reset_email.html",
+        subject_template_name="registration/password_reset_subject.txt",
+        success_url=reverse_lazy("accounts:password_reset_done"),
+    )
+)
+
 urlpatterns = [
-    path("signup/", views.signup, name="signup"),
+    path("signup/", signup_view, name="signup"),
     path(
         "login/",
-        auth_views.LoginView.as_view(template_name="registration/login.html", redirect_authenticated_user=True),
+        login_view,
         name="login",
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
@@ -24,13 +44,7 @@ urlpatterns = [
     # either path validates the same way.
     path(
         "password-reset/",
-        auth_views.PasswordResetView.as_view(
-            template_name="registration/password_reset_form.html",
-            email_template_name="registration/password_reset_email.txt",
-            html_email_template_name="registration/password_reset_email.html",
-            subject_template_name="registration/password_reset_subject.txt",
-            success_url=reverse_lazy("accounts:password_reset_done"),
-        ),
+        password_reset_view,
         name="password_reset",
     ),
     path(

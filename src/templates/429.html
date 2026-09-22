@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Too many attempts — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="client-report-shell">
+    <div class="card p-10 text-center" style="margin-top: 60px; max-width: 480px; margin-left:auto; margin-right:auto;">
+        <div class="icon-chip-sm icon-chip-danger" style="width:44px;height:44px;border-radius:12px;margin:0 auto 18px;">
+            <i data-lucide="shield-alert" style="width:20px;height:20px"></i>
+        </div>
+        <p class="empty-state-title">Too many attempts</p>
+        <p class="empty-state-subtitle">For security, this page temporarily limits how often it can be submitted. Please wait a few minutes and try again.</p>
+        <a href="{% url 'accounts:login' %}" class="btn-primary px-5 py-2.5 text-sm mt-6" style="display:inline-block;">Back to login</a>
+    </div>
+</div>
+{% endblock %}

@@ -22,9 +22,9 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 X_FRAME_OPTIONS = "DENY"
 
-# Login rate limiting is enforced at the view layer (apps.accounts) — see
-# LoginRateLimitError there. Django's built-in AxesBackend is not wired in
-# Build 1; add django-axes or equivalent before public signup exists.
+# Rate limiting on login/password-reset/signup is enforced via
+# django-ratelimit decorators in apps.accounts.urls, backed by the Redis
+# cache configured above (CACHES / RATELIMIT_USE_CACHE).
 
 LOGGING = {
     "version": 1,

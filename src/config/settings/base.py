@@ -137,6 +137,26 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:dashboard"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
+# --- Cache (backs rate limiting below; same Redis instance as Celery's
+# broker, just a different logical DB so a flush of one doesn't touch the
+# other) ---
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.environ.get("REDIS_URL", "redis://redis:6379/0").rsplit("/", 1)[0] + "/1",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+    }
+}
+
+# --- Rate limiting (django-ratelimit) ---
+# Auth endpoints (login, password reset, signup) are decorated with
+# @ratelimit directly in their urls.py/views.py. This just wires the
+# shared cache backend and points a blocked request at a plain 429 page
+# instead of letting the Ratelimited exception fall through to Django's
+# generic 403 handler.
+RATELIMIT_USE_CACHE = "default"
+RATELIMIT_VIEW = "apps.core.views.ratelimited"
+
 # --- Celery ---
 CELERY_BROKER_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL", "redis://redis:6379/0")

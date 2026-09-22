@@ -17,6 +17,8 @@ dependencies = [
     "xhtml2pdf==0.2.*",
     "Pillow==12.3.*",
     "stripe==15.*",
+    "django-ratelimit==4.1.*",
+    "django-redis==5.4.*",
 ]
 
 [project.optional-dependencies]
