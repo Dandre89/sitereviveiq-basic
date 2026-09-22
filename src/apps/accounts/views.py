@@ -7,6 +7,28 @@ from django.contrib.auth import get_user_model, login, update_session_auth_hash
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
+
+def _get_email_field_name(model):
+    return model.get_email_field_name()
+
+
+class AccountSetupPasswordResetForm(PasswordResetForm):
+    """Like PasswordResetForm, but doesn't silently skip accounts with no
+    usable password yet. Django's stock get_users() excludes those by
+    design, which broke reset/setup emails for every account created via
+    this admin console (new accounts start with password=None ->
+    unusable password until the owner sets one for the first time).
+    """
+
+    def get_users(self, email):
+        UserModel = get_user_model()
+        email_field_name = _get_email_field_name(UserModel)
+        active_users = UserModel._default_manager.filter(**{
+            f"{email_field_name}__iexact": email,
+            "is_active": True,
+        })
+        return (u for u in active_users)
+
 from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
@@ -331,12 +353,14 @@ def internal_trigger_password_reset(request):
     user_exists = UserModel.objects.filter(email=email, is_active=True).exists()
 
     if user_exists:
-        form = PasswordResetForm(data={"email": email})
+        form = AccountSetupPasswordResetForm(data={"email": email})
         if form.is_valid():
             form.save(
-                email_template_name="registration/password_reset_email.html",
+                email_template_name="registration/password_reset_email.txt",
+                html_email_template_name="registration/password_reset_email.html",
                 subject_template_name="registration/password_reset_subject.txt",
-                request=request,
+                domain_override=settings.SITE_DOMAIN,
+                use_https=True,
             )
 
     # Always returns the same shape whether or not the account exists —
@@ -405,13 +429,14 @@ def internal_create_account(request):
 
     send_welcome_email(user, request)
 
-    reset_form = PasswordResetForm(data={"email": email})
+    reset_form = AccountSetupPasswordResetForm(data={"email": email})
     if reset_form.is_valid():
         reset_form.save(
             email_template_name="registration/password_reset_email.txt",
             html_email_template_name="registration/password_reset_email.html",
             subject_template_name="registration/password_reset_subject.txt",
-            request=request,
+            domain_override=settings.SITE_DOMAIN,
+            use_https=True,
         )
 
     return JsonResponse(
