@@ -1,6 +1,6 @@
 Your subscription has ended
 
-Hi{% if first_name %} {{ first_name }}{% endif %}, this confirms your SiteRevive IQ subscription is now canceled and access to your workspace has ended. Your data isn't deleted — if you resubscribe, everything picks up right where you left off.
+Hi{% if first_name %} {{ first_name }}{% endif %}, this confirms your SiteRevive IQ subscription is now canceled and access to your workspace has ended. Your data isn't deleted — we hold it for 90 days, so if you resubscribe before then, everything picks up right where you left off.
 
 Changed your mind, or canceled by mistake? You can resubscribe any time:
 
