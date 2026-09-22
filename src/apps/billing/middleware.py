@@ -33,8 +33,10 @@ class SubscriptionEnforcementMiddleware:
     # Paths that must stay reachable even for a blocked workspace — the
     # billing app itself (so a locked-out owner can still fix it), auth
     # (so they can log out), the Django admin (so an operator can always
-    # get in), and static/media assets the locked page itself needs.
-    EXEMPT_PREFIXES = ("/billing/", "/admin/", "/accounts/", "/static/", "/media/")
+    # get in), static/media assets the locked page itself needs, and the
+    # public legal pages (terms/privacy/refund policy must stay visible
+    # to every signed-in user regardless of subscription state).
+    EXEMPT_PREFIXES = ("/billing/", "/admin/", "/accounts/", "/static/", "/media/", "/legal/")
 
     def __init__(self, get_response):
         self.get_response = get_response
