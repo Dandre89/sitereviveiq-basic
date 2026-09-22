@@ -25,6 +25,13 @@
 
         <p class="text-center text-xs text-muted mt-6">Need more than one website? <a href="mailto:hello@sitereviveiq.com?subject=Pro%20plan%20inquiry" class="hover:text-primary underline">Ask about Pro</a>.</p>
         <p class="text-center text-xs text-muted mt-2">Payments processed by Stripe. Test mode — no charge is real yet.</p>
+        <p class="text-center text-xs text-muted mt-2">
+            <a class="underline hover:text-primary" href="{% url 'core:legal_terms' %}">Terms</a>
+            &middot;
+            <a class="underline hover:text-primary" href="{% url 'core:legal_privacy' %}">Privacy</a>
+            &middot;
+            <a class="underline hover:text-primary" href="{% url 'core:legal_refund_policy' %}">Refund Policy</a>
+        </p>
     </div>
 </div>
 {% endblock %}

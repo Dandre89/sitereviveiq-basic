@@ -30,6 +30,13 @@
             </p>
         </div>
         <p class="text-center text-xs text-muted mt-5">New here? <a href="{% url 'billing:pricing' %}" class="hover:text-primary underline">See pricing and sign up</a>.</p>
+        <p class="text-center text-xs text-muted mt-4">
+            <a class="underline hover:text-primary" href="{% url 'core:legal_terms' %}">Terms</a>
+            &middot;
+            <a class="underline hover:text-primary" href="{% url 'core:legal_privacy' %}">Privacy</a>
+            &middot;
+            <a class="underline hover:text-primary" href="{% url 'core:legal_refund_policy' %}">Refund Policy</a>
+        </p>
     </div>
 </div>
 {% endblock %}

@@ -11,6 +11,19 @@ from apps.workspaces.access import scope_websites
 from apps.workspaces.models import WorkspaceMembership
 
 
+def legal_terms(request):
+    """Public — no @login_required. See views.py docstring note in the Enterprise codebase's copy of this page: policy text is company-wide and duplicated verbatim across all three tiers."""
+    return render(request, "legal/terms.html")
+
+
+def legal_privacy(request):
+    return render(request, "legal/privacy.html")
+
+
+def legal_refund_policy(request):
+    return render(request, "legal/refund_policy.html")
+
+
 @login_required
 def dashboard(request):
     websites = scope_websites(request, Website.objects.filter(workspace=request.workspace), lookup="pk")

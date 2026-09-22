@@ -40,11 +40,24 @@
                 </div>
                 <button type="submit" class="btn-primary w-full py-2.5 text-sm">Continue to payment</button>
             </form>
+            <p class="text-center text-xs text-muted mt-3">
+                By continuing, you agree to our
+                <a class="underline hover:text-primary" href="{% url 'core:legal_terms' %}">Terms</a>
+                and
+                <a class="underline hover:text-primary" href="{% url 'core:legal_privacy' %}">Privacy Policy</a>.
+            </p>
         </div>
         <p class="text-center text-xs text-muted mt-5">
             <a href="{% url 'billing:pricing' %}?interval={{ interval }}" class="hover:text-primary underline">Back to pricing</a>
             &middot;
             Already have an account? <a href="{% url 'accounts:login' %}" class="hover:text-primary underline">Log in</a>
+        </p>
+        <p class="text-center text-xs text-muted mt-4">
+            <a class="underline hover:text-primary" href="{% url 'core:legal_terms' %}">Terms</a>
+            &middot;
+            <a class="underline hover:text-primary" href="{% url 'core:legal_privacy' %}">Privacy</a>
+            &middot;
+            <a class="underline hover:text-primary" href="{% url 'core:legal_refund_policy' %}">Refund Policy</a>
         </p>
     </div>
 </div>

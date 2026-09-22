@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Refund & Cancellation Policy — SiteRevive IQ{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto py-10 px-2">
+    <p class="eyebrow mb-2">Legal</p>
+    <h1 class="text-2xl font-medium tracking-tight mb-1">Refund & Cancellation Policy</h1>
+    <p class="text-xs text-muted mb-8">Effective date: September 22, 2026</p>
+
+    <div class="text-sm">
+        <p class="mb-4 leading-relaxed">This policy explains how billing, cancellation, and refunds work for SiteRevive IQ Basic and Pro subscriptions. (Enterprise billing is handled directly with your account manager under your specific agreement.)</p>
+        <h2 class="text-base font-semibold mt-7 mb-2">1. Billing cycle</h2>
+        <p class="mb-4 leading-relaxed">Basic and Pro subscriptions are billed in advance, either monthly or annually, through Stripe. Your subscription renews automatically at the end of each billing period unless you cancel before the renewal date.</p>
+        <h2 class="text-base font-semibold mt-7 mb-2">2. Canceling your subscription</h2>
+        <p class="mb-4 leading-relaxed">You can cancel any time from Settings. When you cancel:</p>
+        <ul class="list-disc pl-5 mb-4 space-y-1.5">
+        <li>Your access continues, uninterrupted, until the end of your current paid billing period.</li>
+        <li>Your subscription will not renew or charge again after that.</li>
+        <li>We do not prorate or refund the unused portion of your current billing period — you keep full access through the period you've already paid for, and simply aren't charged again.</li>
+        </ul>
+        <p class="mb-4 leading-relaxed">If you change your mind before your access period ends, contact us at <a class="underline hover:text-primary" href="mailto:support@sitereviveiq.com">support@sitereviveiq.com</a> and we can reverse a pending cancellation.</p>
+        <h2 class="text-base font-semibold mt-7 mb-2">3. Refunds</h2>
+        <p class="mb-4 leading-relaxed">Because access continues through the period you've paid for, we generally do not offer refunds for partial billing periods or for "unused" time after a cancellation. If you believe you were charged in error — for example, a duplicate charge or a charge after you'd already canceled — contact us at <a class="underline hover:text-primary" href="mailto:support@sitereviveiq.com">support@sitereviveiq.com</a> and we'll investigate and correct it.</p>
+        <p class="mb-4 leading-relaxed"><strong>Basic plan first-time refund window.</strong> If you're a first-time Basic subscriber, you can request a full refund within 7 days of your first payment, no questions asked — this covers both monthly and annual Basic signups. To use this window, contact us at <a class="underline hover:text-primary" href="mailto:support@sitereviveiq.com">support@sitereviveiq.com</a> within 7 days of your first charge. This window applies once per customer, to your first Basic payment only; it does not apply to renewal charges, to Pro or Enterprise subscriptions, or to plan upgrades.</p>
+        <h2 class="text-base font-semibold mt-7 mb-2">4. Scan credit top-ups</h2>
+        <p class="mb-4 leading-relaxed">One-time scan credit purchases (currently $25 for 10 credits) are non-refundable once the credits have been added to your account, except where required by law or in the case of a billing error.</p>
+        <h2 class="text-base font-semibold mt-7 mb-2">5. Plan upgrades</h2>
+        <p class="mb-4 leading-relaxed">Moving from Basic to Pro takes effect immediately — your workspace, websites, and history move over automatically under the same login. You'll be billed for the new plan going forward per Stripe's standard proration handling for the upgrade.</p>
+        <h2 class="text-base font-semibold mt-7 mb-2">6. Failed payments</h2>
+        <p class="mb-4 leading-relaxed">If a renewal payment fails, we'll notify you by email and attempt to collect payment again per Stripe's retry schedule. If payment continues to fail, your subscription may be marked past-due and, eventually, access may be restricted until payment is resolved or you cancel.</p>
+        <h2 class="text-base font-semibold mt-7 mb-2">7. Account deletion</h2>
+        <p class="mb-4 leading-relaxed">Requesting account deletion (Settings → Delete Account) is different from canceling — it also flags your workspace for permanent removal. Like cancellation, your access and any pending refund treatment continue exactly as described in Sections 2–3 above: no proration, access continues through the paid period. After that, we retain your workspace data for 90 days in case you want to resubscribe and pick up where you left off — no separate restore request needed during that window. After 90 days, your workspace is queued for permanent, irreversible deletion. See our Privacy Policy (Section 6) for more detail.</p>
+        <h2 class="text-base font-semibold mt-7 mb-2">8. Contact</h2>
+        <p class="mb-4 leading-relaxed">Billing questions: <a class="underline hover:text-primary" href="mailto:support@sitereviveiq.com">support@sitereviveiq.com</a></p>
+    </div>
+
+    <div class="text-xs text-muted mt-10 pt-6" style="border-top: 1px solid var(--color-border-soft);">
+        <a class="underline hover:text-primary" href="{% url 'core:legal_terms' %}">Terms of Service</a>
+        &middot;
+        <a class="underline hover:text-primary" href="{% url 'core:legal_privacy' %}">Privacy Policy</a>
+        &middot;
+        <a class="underline hover:text-primary" href="{% url 'core:legal_refund_policy' %}">Refund &amp; Cancellation Policy</a>
+    </div>
+</div>
+{% endblock %}
