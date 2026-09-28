@@ -5,7 +5,21 @@ Nothing environment-specific lives here except sane defaults.
 import os
 from pathlib import Path
 
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# --- Error monitoring (Sentry) ---
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
+        send_default_pii=True,
+        traces_sample_rate=0.0,
+    )
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 
@@ -198,6 +212,12 @@ if os.environ.get("EMAIL_HOST"):
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@sitereviveiq.com")
+
+# Internal team alert inbox  not customer-facing. Used by
+# apps.core.emails.send_admin_notification for things like the
+# new-signup pings in apps.accounts.views.signup and
+# apps.billing.services.link_subscription_from_checkout_session.
+ADMIN_NOTIFICATION_EMAIL = os.environ.get("ADMIN_NOTIFICATION_EMAIL", "support@sitereviveiq.com")
 
 # --- Scoring: score-drop threshold that triggers a notification (Build 7) ---
 SCORE_DROP_NOTIFICATION_THRESHOLD = int(os.environ.get("SCORE_DROP_NOTIFICATION_THRESHOLD", 10))

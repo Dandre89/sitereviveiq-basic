@@ -40,7 +40,7 @@ from django.views.decorators.http import require_POST
 
 from apps.billing import services as billing_services
 from apps.billing.models import Subscription
-from apps.core.emails import send_templated_email
+from apps.core.emails import send_admin_notification, send_templated_email
 from apps.workspaces.models import AuditLogEntry, Workspace, WorkspaceMembership
 
 from .forms import AccountDeletionForm, ProfileForm, SignupForm
@@ -173,6 +173,15 @@ def signup(request):
 
             login(request, user)
             send_welcome_email(user, request)
+            send_admin_notification(
+                subject=f"New Basic signup started  {user.email}",
+                body=(
+                    f"{user.first_name} ({user.email}) just started a Basic signup ({interval}).\n"
+                    f"Workspace: {workspace.name}\n\n"
+                    "Heads up only  they haven't completed Stripe checkout yet. "
+                    "You'll get a second email if/when they actually pay."
+                ),
+            )
 
             success_url = (
                 request.build_absolute_uri(reverse("billing:checkout_success"))

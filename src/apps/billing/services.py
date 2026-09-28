@@ -37,7 +37,7 @@ import stripe
 from django.conf import settings
 from django.urls import reverse
 
-from apps.core.emails import send_templated_email
+from apps.core.emails import send_admin_notification, send_templated_email
 
 from .models import Subscription
 
@@ -140,11 +140,31 @@ def link_subscription_from_checkout_session(session) -> Subscription | None:
     if not isinstance(stripe_subscription_id, str):
         stripe_subscription_id = stripe_subscription_id.id
 
+    # Captured before we overwrite it below  this function runs twice for
+    # the same session (synchronous success view + webhook, see docstring),
+    # so this is how we only fire the paying-customer notification once.
+    already_linked = bool(subscription.stripe_subscription_id)
+
     client = build_client()
     stripe_sub = client.v1.subscriptions.retrieve(stripe_subscription_id)
     subscription.stripe_subscription_id = stripe_sub.id
     _apply_stripe_subscription(subscription, stripe_sub)
     subscription.save()
+
+    if not already_linked:
+        owner = _workspace_owner(subscription.workspace)
+        if owner is not None:
+            send_admin_notification(
+                subject=f"New Basic customer  {owner.email}",
+                body=(
+                    f"{owner.first_name} ({owner.email}) just completed Stripe checkout "
+                    f"for Basic ({subscription.intended_interval or 'monthly'}).\n"
+                    f"Workspace: {subscription.workspace.name}\n"
+                    f"Stripe subscription: {subscription.stripe_subscription_id}\n\n"
+                    "They're a paying customer now."
+                ),
+            )
+
     return subscription
 
 
