@@ -174,7 +174,13 @@ def reset_due_cycles() -> int:
     reset_count = 0
     for pk in due_ids:
         with transaction.atomic():
-            balance = CreditBalance.objects.select_for_update().select_related(
+            # of=("self",)  lock only the CreditBalance row we're mutating.
+            # Without it, select_for_update() tries to lock every joined
+            # table too, including billing_subscription  which is brought
+            # in via a LEFT OUTER JOIN (a workspace may have no subscription
+            # row yet) and Postgres refuses FOR UPDATE on the nullable side
+            # of an outer join.
+            balance = CreditBalance.objects.select_for_update(of=("self",)).select_related(
                 "workspace__subscription"
             ).get(pk=pk)
             # Re-check under the lock — cycle_resets_at could have moved
