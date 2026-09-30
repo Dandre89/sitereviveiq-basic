@@ -2,9 +2,11 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.shortcuts import render
+from django.views.decorators.http import require_POST
 
 from apps.accounts.forms import ProfileForm
 from apps.accounts.models import UserNotificationPreference
+from apps.core.emails import send_admin_notification
 from apps.scans.models import Scan
 from apps.websites.models import Website
 from apps.workspaces.access import scope_websites
@@ -115,3 +117,32 @@ def settings_view(request):
         },
     )
 
+
+@login_required
+@require_POST
+def submit_feedback(request):
+    """
+    Backs the feedback tab in base.html (bottom-right, every authenticated
+    page). Deliberately minimal — no FeedbackSubmission model, no admin
+    console screen: it's just an admin_notification email to the team
+    inbox with the message + who/where, same pattern as the new-signup
+    pings in apps.accounts.views.signup. If we outgrow "read it in email"
+    we can promote this to a real model later.
+    """
+    message = (request.POST.get("message") or "").strip()
+    if not message:
+        return render(request, "core/_feedback_result.html", {"error": True})
+
+    workspace = getattr(request, "workspace", None)
+    page_url = request.POST.get("page_url") or request.META.get("HTTP_REFERER", "—")
+    send_admin_notification(
+        subject=f"Feedback from {request.user.email}",
+        body=(
+            f"{request.user.first_name} ({request.user.email}) sent feedback:\n\n"
+            f"{message}\n\n"
+            f"Workspace: {workspace.name if workspace else '—'}\n"
+            f"Page: {page_url}\n"
+            f"App version: {settings.APP_VERSION}"
+        ),
+    )
+    return render(request, "core/_feedback_result.html", {"error": False})

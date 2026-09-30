@@ -64,6 +64,7 @@
                 <div class="sidebar-logo-text flex flex-col items-end leading-none">
                     <span class="font-bold text-lg tracking-tight">SiteRevive IQ</span>
                     <span class="sidebar-tier-label" style="font-size:10px;font-weight:600;letter-spacing:.04em;opacity:.75;margin-top:2px;color:#fff;">Basic</span>
+                    <span class="sidebar-version-label" style="font-size:9px;font-weight:500;letter-spacing:.03em;opacity:.45;margin-top:1px;color:#fff;">v{{ app_version }}</span>
                 </div>
             </div>
             <nav class="flex-1 p-2">
@@ -197,6 +198,31 @@
     <script src="{% static_v 'js/tour.js' %}"></script>
     {% endif %}
 
+    {% if user.is_authenticated and not hide_chrome %}
+    <div id="feedback-tab" class="feedback-tab">
+        <div id="feedback-panel" class="feedback-panel hidden">
+            <div class="feedback-panel-header">
+                <span>Send feedback</span>
+                <button type="button" id="feedback-close-btn" class="feedback-panel-close" aria-label="Close feedback">
+                    <i data-lucide="x" style="width:14px;height:14px"></i>
+                </button>
+            </div>
+            <div id="feedback-panel-body">
+                <form id="feedback-form" hx-post="{% url 'core:submit_feedback' %}" hx-target="#feedback-panel-body" hx-swap="innerHTML">
+                    {% csrf_token %}
+                    <input type="hidden" name="page_url" id="feedback-page-url">
+                    <textarea name="message" rows="4" placeholder="Bugs, ideas, anything — we read it all." required></textarea>
+                    <button type="submit" class="feedback-submit-btn">Send</button>
+                </form>
+            </div>
+        </div>
+        <button type="button" id="feedback-tab-btn" class="feedback-tab-btn" aria-label="Send feedback">
+            <i data-lucide="message-square-plus" style="width:16px;height:16px"></i>
+            <span>Feedback</span>
+        </button>
+    </div>
+    {% endif %}
+
     <script>
         window.SRIQ = {
             toggleDrawer: function () {
@@ -309,6 +335,20 @@
                     SRIQTour.toggle();
                 });
                 if (SRIQTour.isActive()) { SRIQTour.start(); }
+            }
+
+            var feedbackTabBtn = document.getElementById('feedback-tab-btn');
+            var feedbackPanel = document.getElementById('feedback-panel');
+            var feedbackCloseBtn = document.getElementById('feedback-close-btn');
+            var feedbackPageUrl = document.getElementById('feedback-page-url');
+            if (feedbackTabBtn && feedbackPanel) {
+                if (feedbackPageUrl) feedbackPageUrl.value = window.location.href;
+                feedbackTabBtn.addEventListener('click', function () {
+                    feedbackPanel.classList.toggle('hidden');
+                });
+                if (feedbackCloseBtn) feedbackCloseBtn.addEventListener('click', function () {
+                    feedbackPanel.classList.add('hidden');
+                });
             }
         });
 

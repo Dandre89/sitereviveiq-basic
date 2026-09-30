@@ -10,6 +10,14 @@ from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+# --- Release version (shown in the sidebar, under the logo) ---
+# Semantic versioning per tier (each tier's codebase versions
+# independently, since a Basic release doesn't necessarily ship the same
+# day as Pro/Enterprise): MAJOR for breaking/structural changes, MINOR for
+# new user-facing features, PATCH for bug fixes. Bump by hand as part of
+# shipping any change — see the project's version-control procedure notes.
+APP_VERSION = "1.0.0"
+
 # --- Error monitoring (Sentry) ---
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 if SENTRY_DSN:
@@ -79,6 +87,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.monitoring.context_processors.unread_notifications",
+                "apps.core.context_processors.app_meta",
             ],
         },
     },

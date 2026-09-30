@@ -1,0 +1,11 @@
+{% if error %}
+<p class="feedback-error">Please enter a message before sending.</p>
+<form id="feedback-form" hx-post="{% url 'core:submit_feedback' %}" hx-target="#feedback-panel-body" hx-swap="innerHTML">
+    {% csrf_token %}
+    <input type="hidden" name="page_url" value="{{ request.get_full_path }}">
+    <textarea name="message" rows="4" placeholder="Bugs, ideas, anything — we read it all." required></textarea>
+    <button type="submit" class="feedback-submit-btn">Send</button>
+</form>
+{% else %}
+<p class="feedback-success">Thanks — your feedback has been sent to the team.</p>
+{% endif %}

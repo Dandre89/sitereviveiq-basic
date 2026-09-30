@@ -10,4 +10,5 @@ urlpatterns = [
     path("legal/terms/", views.legal_terms, name="legal_terms"),
     path("legal/privacy/", views.legal_privacy, name="legal_privacy"),
     path("legal/refund-policy/", views.legal_refund_policy, name="legal_refund_policy"),
+    path("feedback/submit/", views.submit_feedback, name="submit_feedback"),
 ]

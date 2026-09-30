@@ -19,6 +19,7 @@ dependencies = [
     "stripe==15.*",
     "django-ratelimit==4.1.*",
     "django-redis==5.4.*",
+    "sentry-sdk==2.*",
 ]
 
 [project.optional-dependencies]
