@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlencode
 
 import stripe
 from django.contrib import messages
@@ -88,14 +89,34 @@ def checkout_success(request):
                 "We've been notified and will follow up shortly — no need to try again.",
             )
             return redirect("core:dashboard" if request.user.is_authenticated else "accounts:login")
-        return render(request, "billing/upgrade_success.html", {"pro_login_url": settings.PRO_APP_LOGIN_URL})
+        # GA4: upgrade_success.html fires 'purchase' inline (it's a real
+        # dedicated confirmation page, unlike the plain signup path below)
+        # using the already-verified session's own amount_total/currency.
+        return render(request, "billing/upgrade_success.html", {
+            "pro_login_url": settings.PRO_APP_LOGIN_URL,
+            "ga_value": f"{(getattr(session, 'amount_total', 0) or 0) / 100:.2f}",
+            "ga_txn": session_id,
+        })
 
     subscription = services.link_subscription_from_checkout_session(session)
     if subscription is not None and subscription.has_access:
         messages.success(request, "You're all set — welcome to SiteRevive IQ.")
     else:
         messages.info(request, "Payment received — finishing setting up your account, this can take a few seconds.")
-    return redirect("core:dashboard" if request.user.is_authenticated else "accounts:login")
+
+    redirect_to = "core:dashboard" if request.user.is_authenticated else "accounts:login"
+    if subscription is not None and subscription.has_access:
+        # GA4: carry the confirmed purchase through the redirect as query
+        # params so base.html can fire 'purchase' + 'sign_up' once the
+        # dashboard loads — see the GA4 handling script in base.html.
+        ga_params = urlencode({
+            "ga_purchase": "1",
+            "plan": subscription.intended_plan or "",
+            "value": f"{(getattr(session, 'amount_total', 0) or 0) / 100:.2f}",
+            "txn": session_id,
+        })
+        return redirect(f"{reverse(redirect_to)}?{ga_params}")
+    return redirect(redirect_to)
 
 
 def checkout_cancel(request):

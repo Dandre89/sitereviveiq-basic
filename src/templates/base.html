@@ -5,6 +5,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-81BQVEB622"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-81BQVEB622');
+    </script>
     <title>{% block title %}SiteRevive IQ{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="{% static_v 'img/favicon.ico' %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static_v 'img/favicon-32.png' %}">
@@ -307,6 +315,39 @@
         // happening, and why the layout padding fix below never actually
         // applied to any chart.
         SRIQCharts.applyDefaults();
+
+        // GA4: fires 'purchase' + 'sign_up' once, on whatever page a
+        // just-completed Stripe Checkout redirects back to (the dashboard —
+        // see billing/views.py::checkout_success, which already verified
+        // the Checkout Session server-side before adding these params).
+        // Firing here rather than from a dedicated confirmation template
+        // because the app doesn't have one; this still only fires after
+        // server-side confirmation, just one hop later via query params.
+        // Clears the params from the URL afterward so a refresh/back-nav
+        // can't double-fire.
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('ga_purchase') !== '1') return;
+            var plan = params.get('plan') || '';
+            var value = parseFloat(params.get('value') || '0');
+            var txnId = params.get('txn') || '';
+            if (window.gtag) {
+                gtag('event', 'purchase', {
+                    transaction_id: txnId,
+                    value: value,
+                    currency: 'USD',
+                    plan: plan,
+                });
+                gtag('event', 'sign_up', { plan: plan });
+            }
+            params.delete('ga_purchase');
+            params.delete('plan');
+            params.delete('value');
+            params.delete('txn');
+            var qs = params.toString();
+            var newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+            window.history.replaceState({}, document.title, newUrl);
+        })();
 
         document.addEventListener('DOMContentLoaded', function () {
             if (window.lucide) { lucide.createIcons(); }

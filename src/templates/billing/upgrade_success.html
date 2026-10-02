@@ -14,4 +14,18 @@
         <p class="text-xs text-muted mt-6">This Basic account is now closed.</p>
     </div>
 </div>
+<script>
+    // GA4: this page only ever renders once, right after
+    // upgrade.complete_upgrade_from_checkout_session confirms the
+    // Checkout Session server-side — safe to fire unconditionally here.
+    if (window.gtag) {
+        gtag('event', 'purchase', {
+            transaction_id: '{{ ga_txn|escapejs }}',
+            value: {{ ga_value|default:"0" }},
+            currency: 'USD',
+            plan: 'pro',
+        });
+        gtag('event', 'sign_up', { plan: 'pro' });
+    }
+</script>
 {% endblock %}

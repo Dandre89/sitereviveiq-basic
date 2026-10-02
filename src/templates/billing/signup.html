@@ -40,6 +40,28 @@
                 </div>
                 <button type="submit" class="btn-primary w-full py-2.5 text-sm">Continue to payment</button>
             </form>
+            <script>
+                // GA4: 'sign_up_started' fires once this form is shown;
+                // 'begin_checkout' fires on submit, right before the POST
+                // creates the account and redirects to Stripe — gtag's
+                // default beacon/image transport doesn't block navigation,
+                // so this doesn't delay the redirect.
+                if (window.gtag) {
+                    gtag('event', 'sign_up_started', { plan: 'basic' });
+                }
+                (function () {
+                    var prices = { monthly: 29, annual: 23.20 };
+                    var form = document.currentScript.previousElementSibling;
+                    if (form && form.tagName === 'FORM') {
+                        form.addEventListener('submit', function () {
+                            if (!window.gtag) return;
+                            var interval = '{{ interval|escapejs }}';
+                            var value = prices[interval] || 0;
+                            gtag('event', 'begin_checkout', { plan: 'basic', value: value, currency: 'USD' });
+                        });
+                    }
+                })();
+            </script>
             <p class="text-center text-xs text-muted mt-3">
                 By continuing, you agree to our
                 <a class="underline hover:text-primary" href="{% url 'core:legal_terms' %}">Terms</a>
