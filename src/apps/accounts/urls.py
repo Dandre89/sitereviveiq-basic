@@ -22,6 +22,16 @@ password_reset_view = ratelimit(key="ip", rate="5/h", method="POST", block=True)
         html_email_template_name="registration/password_reset_email.html",
         subject_template_name="registration/password_reset_subject.txt",
         success_url=reverse_lazy("accounts:password_reset_done"),
+        # Stock Django's PasswordResetForm.get_users() silently excludes
+        # any account with no usable password (e.g. admin-console-created
+        # accounts that never went through self-serve Stripe Checkout --
+        # see views.internal_create_account). Without this override, those
+        # users submit this form, see the normal "check your email" page,
+        # and never get an email -- a totally silent failure. This is the
+        # same fix already applied to the admin console's own
+        # internal_trigger_password_reset path; it just wasn't wired in
+        # here too.
+        form_class=views.AccountSetupPasswordResetForm,
     )
 )
 
