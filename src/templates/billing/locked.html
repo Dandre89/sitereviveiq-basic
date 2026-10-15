@@ -27,7 +27,7 @@
         <p class="empty-state-subtitle">Your account is ready — just finish payment to unlock {{ request.workspace.name }}.</p>
         {% else %}
         <p class="empty-state-title">Billing isn't set up for this workspace yet</p>
-        <p class="empty-state-subtitle">Contact SiteRevive IQ to get {{ request.workspace.name }} linked to a subscription.</p>
+        <p class="empty-state-subtitle">Contact SiteRevive IQ to get this workspace linked to a subscription.</p>
         {% endif %}
 
         {% if subscription and subscription.is_migrated_to_pro %}
