@@ -111,7 +111,7 @@ def checkout_success(request):
         # dashboard loads — see the GA4 handling script in base.html.
         ga_params = urlencode({
             "ga_purchase": "1",
-            "plan": subscription.intended_plan or "",
+            "plan": "basic",
             "value": f"{(getattr(session, 'amount_total', 0) or 0) / 100:.2f}",
             "txn": session_id,
         })
