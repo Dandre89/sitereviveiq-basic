@@ -112,12 +112,17 @@
                 </form>
             </div>
         </aside>
+        <div class="mobile-sidebar-backdrop" id="mobile-sidebar-backdrop"></div>
         {% endif %}
 
         <main id="main-content" class="flex-1 px-10 py-8">
 
             {% if user.is_authenticated and not hide_chrome %}
-            <div class="topbar flex items-center justify-end gap-2 mb-6">
+            <div class="topbar flex items-center justify-between gap-2 mb-6">
+                <button type="button" id="mobile-menu-btn" class="mobile-menu-btn topbar-icon-btn w-9 h-9 items-center justify-center" aria-label="Open menu">
+                    <i data-lucide="menu" style="width:18px;height:18px"></i>
+                </button>
+                <div class="flex items-center gap-2 ml-auto">
                 <div class="topbar-demo-toggle flex items-center gap-2" title="Demo mode — guided walkthrough of this page">
                     <i data-lucide="graduation-cap" style="width:16px;height:16px" class="flex-shrink-0"></i>
                     <span class="sidebar-label" style="color:inherit;">Demo</span>
@@ -153,6 +158,7 @@
                             </button>
                         </form>
                     </div>
+                </div>
                 </div>
             </div>
             {% endif %}
@@ -236,6 +242,12 @@
             toggleDrawer: function () {
                 var collapsed = document.documentElement.classList.toggle('drawer-collapsed');
                 localStorage.setItem('sriq-drawer-collapsed', collapsed ? '1' : '0');
+            },
+            toggleMobileSidebar: function () {
+                document.documentElement.classList.toggle('mobile-sidebar-open');
+            },
+            closeMobileSidebar: function () {
+                document.documentElement.classList.remove('mobile-sidebar-open');
             },
             setTheme: function (theme) {
                 document.documentElement.setAttribute('data-theme', theme);
@@ -353,7 +365,22 @@
             if (window.lucide) { lucide.createIcons(); }
 
             var toggleBtn = document.getElementById('drawer-toggle-btn');
-            if (toggleBtn) toggleBtn.addEventListener('click', SRIQ.toggleDrawer);
+            if (toggleBtn) toggleBtn.addEventListener('click', function () {
+                // On narrow viewports the sidebar is an off-canvas drawer, so
+                // this button should close it rather than trigger the
+                // desktop icon-only collapse behavior.
+                if (window.matchMedia('(max-width: 768px)').matches) {
+                    SRIQ.closeMobileSidebar();
+                } else {
+                    SRIQ.toggleDrawer();
+                }
+            });
+
+            var mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', SRIQ.toggleMobileSidebar);
+
+            var mobileBackdrop = document.getElementById('mobile-sidebar-backdrop');
+            if (mobileBackdrop) mobileBackdrop.addEventListener('click', SRIQ.closeMobileSidebar);
 
             var accountBtn = document.getElementById('account-menu-btn');
             var accountPanel = document.getElementById('account-menu-panel');

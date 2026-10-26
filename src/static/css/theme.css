@@ -1541,3 +1541,58 @@ html.drawer-collapsed #main-content { margin-left: var(--sidebar-width-collapsed
 .feedback-submit-btn:hover { filter: brightness(1.08); }
 .feedback-success { color: var(--color-good); font-size: 13px; }
 .feedback-error { color: var(--color-danger); font-size: 13px; }
+
+/* --- Mobile layout (sidebar + main pages) ---
+   Below this breakpoint the fixed sidebar switches from "always-visible,
+   pushes content over" to an off-canvas drawer: hidden by translateX until
+   toggled open via the topbar hamburger button (see base.html), then it
+   overlays the page above a dimmed backdrop instead of squeezing
+   #main-content. Above the breakpoint, everything behaves exactly as
+   before this pass — these rules are entirely additive. */
+.mobile-menu-btn { display: none; }
+.mobile-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, .45);
+  z-index: 45;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn { display: flex !important; }
+
+  #sidebar {
+    z-index: 50;
+    transform: translateX(-100%);
+    box-shadow: 0 0 24px rgba(0, 0, 0, .25);
+  }
+
+  /* A drawer collapsed on desktop before the viewport narrowed shouldn't
+     open on mobile still shrunk to icon-only width — the off-canvas
+     drawer is always full width with labels when opened by hand. */
+  html.drawer-collapsed #sidebar { width: var(--sidebar-width); }
+  html.drawer-collapsed #sidebar .sidebar-label,
+  html.drawer-collapsed #sidebar .sidebar-logo-text,
+  html.drawer-collapsed #sidebar .sidebar-footer-text { display: revert; }
+  html.drawer-collapsed #sidebar .sidebar-item { justify-content: flex-start; }
+
+  html.mobile-sidebar-open #sidebar { transform: translateX(0); }
+  html.mobile-sidebar-open .mobile-sidebar-backdrop { display: block; }
+
+  /* The sidebar is an overlay now, not a column — content always spans
+     full width regardless of collapsed/expanded desktop state. */
+  #main-content,
+  html.drawer-collapsed #main-content {
+    margin-left: 0 !important;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  /* Tables spill wider than a phone screen; scroll horizontally inside
+     the card instead of clipping (overflow-hidden here was only ever
+     about rounding the table's corners, not about hiding content). */
+  .card.overflow-hidden { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .card.overflow-hidden table.data { min-width: 640px; }
+
+  .topbar { flex-wrap: wrap; row-gap: 8px; }
+}
