@@ -8,6 +8,14 @@ dependencies = [
     "psycopg[binary]==3.2.*",
     "celery==5.4.*",
     "redis==5.0.*",
+    # kombu has no ceiling here otherwise, and kombu>=5.7 added a hard
+    # floor requiring redis-py>=6.1.0 for its Redis transport — which
+    # breaks the deliberately-pinned redis==5.0.* above the moment a
+    # fresh install resolves a newer kombu than whatever happened to be
+    # cached in an existing image. Pin below that floor instead of
+    # bumping redis, since django-redis==5.4.* here is only verified
+    # against redis-py 5.x.
+    "kombu<5.7",
     "httpx==0.27.*",
     "selectolax==0.3.*",
     "gunicorn==22.0.*",
